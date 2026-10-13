@@ -1,6 +1,7 @@
 package com.st000ps.powerstone.playback
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import androidx.annotation.OptIn
@@ -10,14 +11,18 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.st000ps.powerstone.app
+import com.st000ps.powerstone.audio.DjEqProcessor
+import com.st000ps.powerstone.audio.VinylPlayer
 import com.st000ps.powerstone.data.PlayEvent
 import com.st000ps.powerstone.ui.MainActivity
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -25,16 +30,24 @@ import kotlinx.coroutines.launch
  * Runs the player in the background so audio keeps going with the screen off,
  * and exposes it to the notification, lock screen, headphones and Bluetooth.
  */
+@OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
+    private lateinit var exo: ExoPlayer
     private lateinit var tracker: PlayTracker
 
-    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
         // Same OkHttp client (and cookie jar) as the API, so full-length streams are authorised.
         val dataSource = OkHttpDataSource.Factory(app.api.http)
-        val player = ExoPlayer.Builder(this)
+        val renderers = object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
+                DefaultAudioSink.Builder(context)
+                    .setAudioProcessors(arrayOf(DjEqProcessor()))
+                    .setEnableFloatOutput(false)
+                    .build()
+        }
+        exo = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(this).setDataSourceFactory(dataSource))
             .setAudioAttributes(
                 AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(),
@@ -44,14 +57,15 @@ class PlaybackService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
 
-        tracker = PlayTracker(player)
-        player.addListener(tracker)
+        tracker = PlayTracker(exo)
+        exo.addListener(tracker)
+        exo.addListener(QueueExtender(exo))
 
         val openApp = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        session = MediaSession.Builder(this, player).setSessionActivity(openApp).build()
+        session = MediaSession.Builder(this, VinylPlayer(exo, app.settings)).setSessionActivity(openApp).build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = session
@@ -64,11 +78,36 @@ class PlaybackService : MediaSessionService() {
     override fun onDestroy() {
         session?.run {
             tracker.finish()
-            player.release()
+            exo.release()
             release()
         }
         session = null
         super.onDestroy()
+    }
+
+    /**
+     * Keeps music going when a queue runs out, like the site: an album rolls
+     * into the next album, and shuffle keeps drawing unheard songs forever.
+     */
+    private inner class QueueExtender(private val player: ExoPlayer) : Player.Listener {
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            mediaItem?.mediaId?.let { Queue.markHeard(app, it) }
+            if (player.repeatMode != Player.REPEAT_MODE_OFF) return
+            val remaining = player.mediaItemCount - 1 - player.currentMediaItemIndex
+            when (Queue.kindOf(mediaItem)) {
+                QueueKind.SHUFFLE -> if (remaining < 3) {
+                    val inQueue = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                    val more = Queue.smartShuffle(app, 50, inQueue).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.SHUFFLE) }
+                    player.addMediaItems(more)
+                }
+                QueueKind.ALBUM -> if (remaining == 0) {
+                    val relId = mediaItem?.mediaId?.substringBeforeLast('/') ?: return
+                    val next = Queue.nextAlbum(app.releases.value, relId) ?: return
+                    player.addMediaItems(next.tracks.mapNotNull { Queue.mediaItem(app, next, it, QueueKind.ALBUM) })
+                }
+                else -> Unit
+            }
+        }
     }
 
     /** Mirrors the site's tracker: a play counts after 10s of actual listening. */
@@ -103,7 +142,11 @@ class PlaybackService : MediaSessionService() {
             val id = currentId
             if (id != null && listenedMs >= 10_000) {
                 val (rel, n) = id.substringBeforeLast('/') to id.substringAfterLast('/').toIntOrNull()
-                if (n != null) buffer += PlayEvent(r = rel, n = n, ts = startedAt, ms = listenedMs)
+                if (n != null) {
+                    val e = PlayEvent(r = rel, n = n, ts = startedAt, ms = listenedMs)
+                    buffer += e
+                    app.scope.launch(Dispatchers.IO) { app.history.add(listOf(e)) }
+                }
             }
             currentId = null; listenedMs = 0; resumedAt = 0L
             if (flush) send() else maybeFlush()
@@ -115,9 +158,9 @@ class PlaybackService : MediaSessionService() {
             if (buffer.isEmpty()) return
             val batch = buffer.toList(); buffer.clear()
             val api = app.api
-            // Fire and forget on the process-wide IO pool so it survives service teardown.
-            CoroutineScope(Dispatchers.IO).launch {
-                if (api.me().signedIn) api.reportPlays(batch)
+            app.scope.launch(Dispatchers.IO) {
+                val me = app.me.value.takeIf { it.signedIn } ?: api.me().also { app.me.value = it }
+                if (me.signedIn && !api.reportPlays(batch)) launch(Dispatchers.Main) { buffer.addAll(0, batch) }
             }
         }
     }

@@ -24,6 +24,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Open 88.8FM links (?r= ?t= ?s= ?tag= ?wrap= ?me) in the app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="thepowerstone.com" />
+                <data android:host="www.thepowerstone.com" />
+                <data android:path="/" />
+            </intent-filter>
         </activity>
 
         <service
