@@ -33,6 +33,8 @@ public sealed partial class PlayerViewModel : ObservableObject
     public string Subtitle => Current == null ? "" : $"{Current.Release.Artist} · {Current.Release.Title}";
     public string? Cover => Current?.Release.Cover ?? Current?.Release.Thumb;
     public string PositionText => Format.Duration(Position);
+    /// <summary>Never 0, so an empty player shows an empty seek bar rather than a full one.</summary>
+    public double SeekMax => Math.Max(Duration, 1);
     public string DurationText => Format.Duration(Duration);
     public bool IsShuffle => _queue.Kind == QueueKind.Shuffle && Current != null;
     public bool RepeatOne => _queue.Repeat == RepeatMode.One;
@@ -91,7 +93,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     }
 
     partial void OnPositionChanged(double value) => OnPropertyChanged(nameof(PositionText));
-    partial void OnDurationChanged(double value) => OnPropertyChanged(nameof(DurationText));
+    partial void OnDurationChanged(double value) { OnPropertyChanged(nameof(DurationText)); OnPropertyChanged(nameof(SeekMax)); }
     partial void OnIsPlayingChanged(bool value) => OnPropertyChanged(nameof(PlayGlyph));
     partial void OnVolumeChanged(float value) { Engine.Volume = value; _shell.Settings.Volume = value; }
 

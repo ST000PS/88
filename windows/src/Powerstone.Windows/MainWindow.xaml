@@ -114,7 +114,7 @@
                             <ColumnDefinition Width="48" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{Binding PositionText}" Style="{StaticResource DimText}" VerticalAlignment="Center" />
-                        <Slider x:Name="Seek" Grid.Column="1" Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position, Mode=TwoWay}"
+                        <Slider x:Name="Seek" Grid.Column="1" Minimum="0" Maximum="{Binding SeekMax}" Value="{Binding Position, Mode=TwoWay}"
                                 Thumb.DragStarted="Seek_DragStarted" Thumb.DragCompleted="Seek_DragCompleted"
                                 PreviewMouseLeftButtonDown="Seek_PreviewMouseDown" PreviewMouseLeftButtonUp="Seek_PreviewMouseUp" />
                         <TextBlock Grid.Column="2" Text="{Binding DurationText}" Style="{StaticResource DimText}" VerticalAlignment="Center" TextAlignment="Right" />

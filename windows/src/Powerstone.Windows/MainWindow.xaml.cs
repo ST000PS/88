@@ -11,6 +11,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // Never open bigger than the screen (small laptops, 1024×768).
+        var area = SystemParameters.WorkArea;
+        Width = Math.Min(Width, area.Width - 40);
+        Height = Math.Min(Height, area.Height - 40);
         SourceInitialized += (_, _) =>
         {
             var hwnd = new WindowInteropHelper(this).Handle;
