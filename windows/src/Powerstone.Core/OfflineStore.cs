@@ -55,7 +55,7 @@ public sealed class OfflineStore
     public bool Has(QueueItem i) => Has(i.Id);
 
     /// <summary>True while downloads may be played (subscription confirmed within the grace period).</summary>
-    public bool Usable { get { lock (_lock) return _now() - DateTimeOffset.FromUnixTimeMilliseconds(_index.VerifiedAt) < Grace; } }
+    public bool Usable { get { lock (_lock) return _index.VerifiedAt > 0 && _now() - DateTimeOffset.FromUnixTimeMilliseconds(_index.VerifiedAt) < Grace; } }
 
     /// <summary>Local file for a downloaded track, or null if it isn't downloaded or downloads are locked.</summary>
     public string? PathFor(string id)

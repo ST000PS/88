@@ -94,6 +94,7 @@ private fun LazyListScope.favourites(state: UiState, vm: AppViewModel) {
     item {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("${items.size} favourites", color = Dim, modifier = Modifier.weight(1f))
+            if (items.isNotEmpty() && state.me.isSubscriber) androidx.compose.material3.TextButton(onClick = { vm.download(items, "favourites") }) { Text("↓ DOWNLOAD") }
             if (items.isNotEmpty()) Button(onClick = { vm.playFavs() }) { Icon(Icons.Filled.PlayArrow, null); Text("PLAY") }
         }
         if (items.isEmpty()) Text("Tap the heart on any track to save it here.", color = Dim, modifier = Modifier.padding(horizontal = 16.dp))

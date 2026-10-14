@@ -47,6 +47,21 @@ headset controls)
 - **Resume where you left off**: the queue and position are saved and come back paused on the next
   launch. Bluetooth play buttons and Android's media resumption can also restart them.
 
+**Offline, crossfade, lock screen**
+- **Downloads** (subscribers): ↓ on a release, a playlist or favourites keeps the tracks on the
+  phone, and they play from there instead of streaming.
+  - Stored in the app's private storage, not as loose MP3s.
+  - Playable offline for 30 days after the subscription was last confirmed.
+  - Deleted on sign-out or when the site says the account isn't subscribed.
+  - A failed network check never deletes anything.
+  - Account → Downloads shows the space used and has *Remove all*.
+- **Crossfade** (Sound: off / 2–8 s): fades the end of one track out and the next one in, in
+  shuffles and playlists. Albums stay gapless. Android's player can't overlap two tracks, so this
+  is a fade-out and fade-in rather than a true overlap (the Windows app does a true overlap).
+- **Lock screen**: the media controls (lock screen, notification, quick settings) get ♥ favourite
+  and shuffle-everything buttons. Tapping the notification on the lock screen opens a full
+  now-playing screen over it, without unlocking.
+
 **Playlists & sharing**
 - Create, rename, reorder, remove tracks and delete playlists. They sync with your account (the
   site's `/api/playlists`, including deletions). Playlists made while signed out are merged in

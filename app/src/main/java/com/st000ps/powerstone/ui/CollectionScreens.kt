@@ -95,6 +95,14 @@ fun ReleaseScreen(r: Release, focusTrack: Int?, state: UiState, vm: AppViewModel
                     Button(onClick = { vm.playRelease(r) }) { Icon(Icons.Filled.PlayArrow, null); Text("PLAY") }
                     OutlinedButton(onClick = { vm.shuffled(r.tracks.map { r to it }) }) { Icon(Icons.Filled.Shuffle, null); Spacer(Modifier.width(4.dp)); Text("SHUFFLE") }
                     r.bandcamp?.let { url -> TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }) { Text("BANDCAMP") } }
+                    if (state.me.isSubscriber) {
+                        @Suppress("UNUSED_EXPRESSION") state.offlineVersion
+                        val items = r.tracks.map { r to it }
+                        val all = items.all { (rr, t) -> vm.isDownloaded(rr, t) }
+                        TextButton(onClick = { if (all) vm.removeDownloads(items) else vm.download(items, r.title) }) {
+                            Text(if (all) "↓ DOWNLOADED · REMOVE" else "↓ DOWNLOAD")
+                        }
+                    }
                 }
                 if (!state.me.isSubscriber) {
                     Spacer(Modifier.height(8.dp))
@@ -167,6 +175,7 @@ fun PlaylistScreen(id: String, state: UiState, vm: AppViewModel, back: () -> Uni
                 ActionRow {
                     Button(onClick = { vm.play(items, 0) }, enabled = items.isNotEmpty()) { Icon(Icons.Filled.PlayArrow, null); Text("PLAY") }
                     OutlinedButton(onClick = { vm.shuffled(items) }, enabled = items.isNotEmpty()) { Icon(Icons.Filled.Shuffle, null); Spacer(Modifier.width(4.dp)); Text("SHUFFLE PLAY") }
+                    if (state.me.isSubscriber && items.isNotEmpty()) TextButton(onClick = { vm.download(items, pl.name) }) { Text("↓ DOWNLOAD") }
                 }
                 if (items.isEmpty()) Text("Empty. Add songs with ⋮ on any track.", color = Dim, modifier = Modifier.padding(vertical = 16.dp))
             }

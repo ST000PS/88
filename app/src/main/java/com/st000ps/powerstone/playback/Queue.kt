@@ -22,7 +22,9 @@ object Queue {
         item?.mediaMetadata?.extras?.getString(KIND)?.let { runCatching { QueueKind.valueOf(it) }.getOrNull() }
 
     fun mediaItem(app: PowerstoneApp, release: Release, track: Track, kind: QueueKind): MediaItem? {
-        val url = Api.absolute(track.streamPath(app.me.value.isSubscriber, app.resolvedQuality())) ?: return null
+        // A downloaded copy plays from the device; otherwise stream.
+        val url = app.offline.fileFor(trackId(release, track))?.let { Uri.fromFile(it).toString() }
+            ?: Api.absolute(track.streamPath(app.me.value.isSubscriber, app.resolvedQuality())) ?: return null
         val extras = Bundle().apply {
             putString(KIND, kind.name)
             track.video?.let { putString(VIDEO, Api.absolute(it)) }

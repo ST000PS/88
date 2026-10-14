@@ -54,6 +54,11 @@ class Settings(context: Context) {
     val vinyl: StateFlow<VinylStop> = _vinyl.asStateFlow()
     fun setVinyl(value: VinylStop) { _vinyl.value = value; prefs.edit().putString("vinyl", value.name).apply() }
 
+    /** Fade between tracks in shuffles and playlists, seconds (0 = off). Albums stay gapless. */
+    private val _crossfade = MutableStateFlow(prefs.getInt("crossfade", 0))
+    val crossfade: StateFlow<Int> = _crossfade.asStateFlow()
+    fun setCrossfade(seconds: Int) { _crossfade.value = seconds; prefs.edit().putInt("crossfade", seconds).apply() }
+
     var videoOn: Boolean
         get() = prefs.getBoolean("video", true)
         set(value) = prefs.edit().putBoolean("video", value).apply()

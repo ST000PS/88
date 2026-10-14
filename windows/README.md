@@ -21,6 +21,14 @@ tracks for subscribers).
 - **Vinyl stop**: pausing really winds the record down (speed and pitch fall together), and
   playing spins it back up. This is done in the audio stream.
 - **Visualizer**: a live spectrum of the audio after the EQ. Click it to change style.
+- **Crossfade** (Sound: off / 2–8 s): a true overlap with equal-power curves, in shuffles and
+  playlists. Albums stay gapless.
+- **Downloads** (subscribers): ↓ on a release, a playlist or favourites.
+  - Played from disk, so they work offline.
+  - Locked if the subscription hasn't been confirmed for 30 days.
+  - Deleted on sign-out or when the subscription ends.
+- **Music videos** (subscribers): shown in Now playing, muted and kept in sync with the audio.
+  They're cached (up to 700 MB) because Windows' video player can't stream with the sign-in.
 - **Windows media controls**: keyboard media keys, the volume flyout and lock-screen card, and
   Bluetooth headset buttons.
 - **Mini player** (**Ctrl+M** or the player-bar button):
@@ -54,7 +62,6 @@ tracks for subscribers).
 Keyboard: **Ctrl+Space** play/pause, **Ctrl+←/→** previous/next, **Ctrl+M** mini player, **Alt+←** back.
 
 Not included:
-- Music videos. They need a video player that can send the session cookie; that's left for later.
 - Google, Apple, Discord and Twitch sign-in. The email code works for any account.
 - The site owner's admin tools.
 

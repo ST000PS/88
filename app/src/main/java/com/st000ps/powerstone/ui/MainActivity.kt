@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -20,7 +23,6 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Album
@@ -111,6 +113,19 @@ class MainActivity : ComponentActivity() {
                     snackbarHost = { SnackbarHost(snackbar) },
                     bottomBar = {
                         if (!fullScreen) Column {
+                            state.download?.let { d ->
+                                androidx.compose.foundation.layout.Row(
+                                    Modifier.fillMaxWidth().background(Panel).padding(horizontal = 16.dp, vertical = 4.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                ) {
+                                    Text(d, color = Rose, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                                    androidx.compose.material3.TextButton(onClick = vm::cancelDownload) { Text("STOP") }
+                                }
+                            }
+                            if (state.offline) Text(
+                                "OFFLINE · playing downloads", color = Rose, style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.fillMaxWidth().background(Panel).padding(horizontal = 16.dp, vertical = 2.dp),
+                            )
                             if (state.now.mediaId != null) MiniPlayer(state, vm) { nav.navigate("player") }
                             if (!useRail) NavigationBar(containerColor = Panel) {
                                 tabs.forEach { tab ->

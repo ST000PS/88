@@ -19,8 +19,15 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
+import com.st000ps.powerstone.R
+import kotlin.math.PI
+import kotlin.math.min
+import kotlin.math.sin
 import com.st000ps.powerstone.app
 import com.st000ps.powerstone.audio.DjEqProcessor
 import com.st000ps.powerstone.audio.VinylPlayer
@@ -28,7 +35,7 @@ import com.st000ps.powerstone.data.PlayEvent
 import com.st000ps.powerstone.data.SavedSession
 import com.st000ps.powerstone.data.SleepState
 import com.st000ps.powerstone.data.resolve
-import com.st000ps.powerstone.ui.MainActivity
+import com.st000ps.powerstone.ui.LockScreenActivity
 import com.st000ps.powerstone.widget.PlayerWidget
 import com.st000ps.powerstone.widget.WidgetState
 import coil.imageLoader
@@ -70,6 +77,13 @@ class PlaybackService : MediaSessionService() {
     private var art: android.graphics.Bitmap? = null
     private var artJob: Job? = null
     private var lastWidget: WidgetState? = null
+    private lateinit var vinyl: VinylPlayer
+    private var fadeInStart = 0L
+    private val fadeTick = object : Runnable {
+        override fun run() { updateFade(); if (exo.isPlaying) handler.postDelayed(this, 50) }
+    }
+    private val favCommand = SessionCommand("fav", android.os.Bundle.EMPTY)
+    private val shuffleCommand = SessionCommand("shuffle", android.os.Bundle.EMPTY)
 
     override fun onCreate() {
         super.onCreate()
@@ -98,11 +112,19 @@ class PlaybackService : MediaSessionService() {
         exo.addListener(object : Player.Listener {
             override fun onEvents(player: Player, events: Player.Events) {
                 pushWidget()
+                if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) updateButtons()
+                if (events.contains(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying) { handler.removeCallbacks(fadeTick); handler.post(fadeTick) }
                 if (events.contains(Player.EVENT_IS_PLAYING_CHANGED)) {
                     handler.removeCallbacks(saveRunnable)
                     if (player.isPlaying) handler.postDelayed(saveRunnable, 10_000) else saveSession()
                 }
                 if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) saveSession()
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                // Fade the new track in only when it followed on by itself (not a skip or a new queue).
+                fadeInStart = if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) SystemClock.elapsedRealtime() else 0L
+                updateFade()
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -113,14 +135,39 @@ class PlaybackService : MediaSessionService() {
             }
         })
         app.sleep.onEach(::applySleep).launchIn(scope)
+        app.favs.onEach { updateButtons() }.launchIn(scope)
 
+        // Tapping the media notification: over the lock screen it opens the lock-screen player,
+        // otherwise it goes straight to the app.
         val openApp = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java),
+            this, 0, Intent(this, LockScreenActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        session = MediaSession.Builder(this, VinylPlayer(exo, app.settings))
+        vinyl = VinylPlayer(exo, app.settings)
+        session = MediaSession.Builder(this, vinyl)
             .setSessionActivity(openApp)
             .setCallback(object : MediaSession.Callback {
+                override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult =
+                    MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                        .setAvailableSessionCommands(
+                            MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon().add(favCommand).add(shuffleCommand).build(),
+                        )
+                        .build()
+
+                // The heart and shuffle buttons in the notification / lock screen / quick settings.
+                override fun onCustomCommand(
+                    session: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                    customCommand: SessionCommand,
+                    args: android.os.Bundle,
+                ): ListenableFuture<SessionResult> {
+                    when (customCommand.customAction) {
+                        favCommand.customAction -> toggleFav()
+                        shuffleCommand.customAction -> widgetCommand("shuffle")
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+
                 // Bluetooth play / Android's media resumption after the app was closed: the last queue.
                 override fun onPlaybackResumption(
                     mediaSession: MediaSession,
@@ -135,6 +182,57 @@ class PlaybackService : MediaSessionService() {
         instance = this
         restoreSession()
         pushWidget()
+        updateButtons()
+    }
+
+    // ---------- notification / lock-screen buttons ----------
+
+    private fun toggleFav() {
+        val id = exo.currentMediaItem?.mediaId ?: return
+        if (!app.me.value.signedIn) return
+        scope.launch { app.setFav(id, id !in app.favs.value) }
+    }
+
+    /** Heart (filled when the current track is a favourite) and shuffle-everything. */
+    private fun updateButtons() {
+        val s = session ?: return
+        val id = exo.currentMediaItem?.mediaId
+        val buttons = buildList {
+            if (app.me.value.signedIn && id != null) {
+                val fav = id in app.favs.value
+                add(CommandButton.Builder().setDisplayName(if (fav) "Remove favourite" else "Favourite")
+                    .setIconResId(if (fav) R.drawable.ic_heart else R.drawable.ic_heart_outline)
+                    .setSessionCommand(favCommand).build())
+            }
+            add(CommandButton.Builder().setDisplayName("Shuffle everything").setIconResId(R.drawable.ic_w_shuffle)
+                .setSessionCommand(shuffleCommand).build())
+        }
+        s.setCustomLayout(buttons)
+    }
+
+    // ---------- crossfade (fade out / fade in) ----------
+
+    /**
+     * Android's player can't overlap two tracks, so "crossfade" here fades the end of a track out and
+     * the next one in, through the player volume (applied at the speaker, so it lines up with what you
+     * hear). Shuffles and playlists only; albums stay gapless.
+     */
+    private fun updateFade() {
+        val ms = app.settings.crossfade.value * 1000L
+        val allowed = ms > 0 && Queue.kindOf(exo.currentMediaItem) != QueueKind.ALBUM &&
+            exo.repeatMode == Player.REPEAT_MODE_OFF && !exo.pauseAtEndOfMediaItems
+        if (!allowed) { vinyl.fadeGain = 1f; return }
+        var g = 1.0
+        val dur = exo.duration
+        if (dur > 0 && exo.hasNextMediaItem()) {
+            val rem = (dur - exo.currentPosition).coerceAtLeast(0)
+            if (rem < ms) g = sin(rem.toDouble() / ms * PI / 2)
+        }
+        if (fadeInStart > 0) {
+            val since = SystemClock.elapsedRealtime() - fadeInStart
+            if (since < ms) g = min(g, sin(since.toDouble() / ms * PI / 2)) else fadeInStart = 0L
+        }
+        vinyl.fadeGain = g.toFloat().coerceIn(0f, 1f)
     }
 
     // ---------- resume where you left off ----------

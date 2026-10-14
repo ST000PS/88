@@ -76,6 +76,26 @@ class Api(context: Context) {
         return catalog
     }
 
+    /** /api/me, or null when the site couldn't be reached — so "offline" is never mistaken for "signed out". */
+    suspend fun tryMe(): Me? = runCatching {
+        val (code, body) = get("/api/me")
+        when (code) {
+            200 -> json.decodeFromString<Me>(body)
+            401, 403 -> Me()
+            else -> null
+        }
+    }.getOrNull()
+
+    /** Downloads a track with the session cookie (full tracks need it). */
+    suspend fun download(path: String): ByteArray = withContext(Dispatchers.IO) {
+        val req = Request.Builder().url(absolute(path)!!).build()
+        http.newCall(req).execute().use { r ->
+            if (r.code == 401) throw ApiException("This track needs a subscription.")
+            if (!r.isSuccessful) throw ApiException("Download failed (${r.code}).")
+            r.body!!.bytes()
+        }
+    }
+
     suspend fun me(): Me {
         val (code, body) = get("/api/me")
         if (code != 200) return Me()

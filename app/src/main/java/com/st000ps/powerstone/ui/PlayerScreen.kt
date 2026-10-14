@@ -449,6 +449,14 @@ fun SoundScreen(state: UiState, vm: AppViewModel, back: () -> Unit) {
             }
 
             Spacer(Modifier.height(16.dp))
+            Text("CROSSFADE", style = MaterialTheme.typography.labelLarge, color = Dim)
+            Text("Fades the end of one track out and the next one in, in shuffles and playlists. Albums stay gapless — many of these tapes run track into track.",
+                style = MaterialTheme.typography.bodySmall, color = Dim)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(0, 2, 4, 6, 8).forEach { s -> Pill(if (s == 0) "OFF" else "$s S", state.crossfade == s) { vm.setCrossfade(s) } }
+            }
+
+            Spacer(Modifier.height(16.dp))
             SwitchRow("MUSIC VIDEOS", "Show the video for tracks that have one (subscribers).", state.videoOn, vm::setVideoOn)
             SwitchRow("VISUALIZER", "Live spectrum under the artwork. Tap it to change style.", state.visualizerOn, vm::setVisualizerOn)
             Spacer(Modifier.height(24.dp))

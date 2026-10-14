@@ -21,6 +21,14 @@ class VinylPlayer(private val exo: ExoPlayer, private val settings: Settings) : 
     private val handler = Handler(Looper.getMainLooper())
     private var anim: Runnable? = null
     private var braking = false
+    private var userVolume = exo.volume
+
+    /** Crossfade envelope (0..1) set by the service; multiplied with the listener's own volume. */
+    var fadeGain = 1f
+        set(value) { if (field != value) { field = value; exo.volume = userVolume * value } }
+
+    override fun setVolume(volume: Float) { userVolume = volume; exo.volume = volume * fadeGain }
+    override fun getVolume(): Float = userVolume
 
     /** Audio is processed ahead of what you hear; keep running a moment so the whole tail is heard. */
     private val tailMs = 450L

@@ -80,6 +80,8 @@ fun AccountScreen(state: UiState, vm: AppViewModel, openSound: () -> Unit) {
             Text("Not a subscriber? 28-second previews of everything are free. Subscribe from here after signing in.", style = MaterialTheme.typography.bodySmall, color = Dim)
         }
         Divider()
+        DownloadsSection(state, vm)
+        Divider()
         QualitySection(state, vm)
         Divider()
         Row(Modifier.fillMaxWidth().clickable(onClick = openSound).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -243,4 +245,23 @@ private fun SignInForm(vm: AppViewModel) {
     TextButton(onClick = { usePassword = !usePassword; b.message = null }) {
         Text(if (usePassword) "Use an email code instead" else "Use a password instead")
     }
+}
+
+@Composable
+private fun DownloadsSection(state: UiState, vm: AppViewModel) {
+    val ctx = LocalContext.current
+    @Suppress("UNUSED_EXPRESSION") state.offlineVersion
+    val store = ctx.applicationContext.let { (it as com.st000ps.powerstone.PowerstoneApp).offline }
+    Text("DOWNLOADS", style = MaterialTheme.typography.labelLarge, color = Dim)
+    Text(
+        "Subscribers can download releases, playlists and favourites (↓) to listen offline. They play offline for 30 days after your " +
+            "subscription was last confirmed, and are removed if you sign out or the subscription ends.",
+        style = MaterialTheme.typography.bodySmall, color = Dim,
+    )
+    Text(
+        if (store.count == 0) "No downloads yet."
+        else "${store.count} tracks · ${store.totalBytes / 1_048_576} MB" + if (store.usable) "" else " · locked until your subscription is confirmed online",
+        modifier = Modifier.padding(top = 6.dp),
+    )
+    if (store.count > 0) OutlinedButton(onClick = { vm.removeAllDownloads() }, modifier = Modifier.padding(top = 6.dp)) { Text("REMOVE ALL DOWNLOADS") }
 }

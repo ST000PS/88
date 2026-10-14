@@ -43,6 +43,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Now playing over the lock screen (opened from the media notification). -->
+        <activity
+            android:name=".ui.LockScreenActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:taskAffinity="com.st000ps.powerstone.lock"
+            android:theme="@style/Theme.Powerstone" />
+
         <receiver
             android:name=".widget.PlayerWidget"
             android:exported="false"
