@@ -42,7 +42,7 @@ public sealed class TrackSequencer(WaveFormat format) : ISampleProvider
                 events.Add(_current != null);
             }
         }
-        if (done < count) Array.Clear(buffer, offset + done, count - done);
+        if (done < count) OutputBuffer.Clear(buffer, offset + done, count - done);
         foreach (var e in events) TrackEnded?.Invoke(e);
         return count;
     }

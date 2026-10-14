@@ -24,7 +24,9 @@ public partial class App : Application
             var window = new MainWindow { DataContext = Shell };
             MainWindow = window;
             window.Show();
-            _ = Shell.StartAsync(e.Args.FirstOrDefault());
+            // Arguments: a thepowerstone.com link to open, and/or --mini to start in the mini player.
+            _ = Shell.StartAsync(e.Args.FirstOrDefault(a => a.StartsWith("http", StringComparison.OrdinalIgnoreCase)));
+            if (e.Args.Contains("--mini")) window.Dispatcher.BeginInvoke(() => Shell.ToggleMiniCommand.Execute(null));
         }
         catch (Exception ex)
         {

@@ -118,8 +118,11 @@ public sealed class AudioEngine : IDisposable
         return await Task.Run(() => Open(item, bytes));
     }
 
-    /// <summary>Starts <paramref name="item"/> from the beginning (downloads it first if needed).</summary>
-    public async Task PlayAsync(QueueItem item)
+    /// <summary>
+    /// Starts <paramref name="item"/> (downloading it first if needed). With <paramref name="autoplay"/> off it
+    /// is only loaded and cued at <paramref name="at"/>, ready for play — used to resume the last session.
+    /// </summary>
+    public async Task PlayAsync(QueueItem item, bool autoplay = true, TimeSpan? at = null)
     {
         var gen = ++_generation;
         Interlocked.Exchange(ref _prepared, null);
@@ -131,11 +134,13 @@ public sealed class AudioEngine : IDisposable
             var old = _current;
             _turntable.Reset();
             _braking = false;
+            if (at is { } t && t > TimeSpan.Zero && t < loaded.Reader.TotalTime) loaded.Reader.CurrentTime = t;
             _sequencer.SetTrack(loaded.Provider);
             _current = loaded;
             old?.Reader.Dispose();
             var o = Output();
-            if (o.PlaybackState != PlaybackState.Playing) o.Play();
+            if (autoplay && o.PlaybackState != PlaybackState.Playing) o.Play();
+            else if (!autoplay && o.PlaybackState == PlaybackState.Playing) o.Pause();
             Started?.Invoke(item, false);
         }
         catch (Exception e)
@@ -209,6 +214,23 @@ public sealed class AudioEngine : IDisposable
         if (spin) _turntable.SpinUp(); else _turntable.Reset();
         var o = Output();
         if (o.PlaybackState != PlaybackState.Playing) o.Play();
+        StateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// The queue ran out: stop the output and cue the last track back at the start, so the
+    /// play button shows "play" and pressing it plays that track again.
+    /// </summary>
+    public void EndOfQueue()
+    {
+        _out?.Pause();
+        _braking = false;
+        _turntable.Reset();
+        if (_current != null)
+        {
+            try { _current.Reader.CurrentTime = TimeSpan.Zero; } catch { }
+            _sequencer.SetTrack(_current.Provider);
+        }
         StateChanged?.Invoke();
     }
 

@@ -54,6 +54,7 @@ public sealed partial class Shell : ObservableObject
     public async Task StartAsync(string? link)
     {
         await RefreshAsync();
+        Player.RestoreSession();
         if (link != null) OpenLink(link);
     }
 
@@ -155,6 +156,10 @@ public sealed partial class Shell : ObservableObject
     [RelayCommand] private void GoAccount() => NavigateRoot(new AccountViewModel(this));
     [RelayCommand] private void GoSound() => NavigateRoot(new SoundViewModel(this));
     [RelayCommand] private void GoNowPlaying() => Navigate(new NowPlayingViewModel(this));
+
+    /// <summary>Switch between the full window and the always-on-top mini player.</summary>
+    public event Action? ToggleMiniRequested;
+    [RelayCommand] private void ToggleMini() => ToggleMiniRequested?.Invoke();
 
     public void OpenRelease(Release r, int? focus = null) => Navigate(new ReleaseViewModel(this, r, focus));
     public void OpenTag(string tag) => Navigate(new TagViewModel(this, tag));

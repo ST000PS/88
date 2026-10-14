@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Powerstone.Core;
 using Powerstone.Windows.Services;
+using System.Windows.Shell;
 using Windows.Networking.Connectivity;
 
 namespace Powerstone.Windows.ViewModels;
@@ -16,6 +17,9 @@ public sealed partial class PlayerViewModel : ObservableObject
     private readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private MediaControls? _media;
     private bool _seeking;
+    private DateTime? _sleepAt;          // sleep timer: pause at this time…
+    private bool _sleepAfterTrack;       // …or at the end of the current track
+    private DateTime _lastSave;
 
     public AudioEngine Engine { get; }
     public PlayQueue Queue => _queue;
@@ -33,6 +37,14 @@ public sealed partial class PlayerViewModel : ObservableObject
     public string Subtitle => Current == null ? "" : $"{Current.Release.Artist} · {Current.Release.Title}";
     public string? Cover => Current?.Release.Cover ?? Current?.Release.Thumb;
     public string PositionText => Format.Duration(Position);
+    /// <summary>0..1, for the taskbar progress bar.</summary>
+    public double Progress => Duration > 0 ? Math.Clamp(Position / Duration, 0, 1) : 0;
+    public TaskbarItemProgressState TaskbarState => Current == null ? TaskbarItemProgressState.None : IsPlaying ? TaskbarItemProgressState.Normal : TaskbarItemProgressState.Paused;
+
+    /// <summary>"SLEEP 23:10" / "SLEEP · END OF TRACK", empty when the timer is off.</summary>
+    public string SleepLabel => _sleepAfterTrack ? "SLEEP · END OF TRACK"
+        : _sleepAt is { } t ? $"SLEEP {Format.Duration(Math.Max(0, (t - DateTime.Now).TotalSeconds))}" : "";
+    public bool SleepOn => _sleepAfterTrack || _sleepAt != null;
     /// <summary>Never 0, so an empty player shows an empty seek bar rather than a full one.</summary>
     public double SeekMax => Math.Max(Duration, 1);
     public string DurationText => Format.Duration(Duration);
@@ -64,7 +76,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         Engine.Finished += OnFinished;
         Engine.Error += m => _shell.ShowToast(m);
         Engine.StateChanged += SyncState;
-        _tick.Tick += (_, _) => { if (!_seeking && Engine.Current != null) { Position = Engine.Position.TotalSeconds; Duration = Engine.Duration.TotalSeconds; } };
+        _tick.Tick += (_, _) => OnTick();
         _tick.Start();
     }
 
@@ -92,9 +104,58 @@ public sealed partial class PlayerViewModel : ObservableObject
         _media.PreviousPressed += () => Previous();
     }
 
-    partial void OnPositionChanged(double value) => OnPropertyChanged(nameof(PositionText));
-    partial void OnDurationChanged(double value) { OnPropertyChanged(nameof(DurationText)); OnPropertyChanged(nameof(SeekMax)); }
-    partial void OnIsPlayingChanged(bool value) => OnPropertyChanged(nameof(PlayGlyph));
+    partial void OnPositionChanged(double value) { OnPropertyChanged(nameof(PositionText)); OnPropertyChanged(nameof(Progress)); }
+    partial void OnDurationChanged(double value) { OnPropertyChanged(nameof(DurationText)); OnPropertyChanged(nameof(SeekMax)); OnPropertyChanged(nameof(Progress)); }
+    partial void OnIsPlayingChanged(bool value) { OnPropertyChanged(nameof(PlayGlyph)); OnPropertyChanged(nameof(TaskbarState)); }
+
+    private void OnTick()
+    {
+        if (!_seeking && Engine.Current != null) { Position = Engine.Position.TotalSeconds; Duration = Engine.Duration.TotalSeconds; }
+        if (_sleepAt is { } at)
+        {
+            if (DateTime.Now >= at) { ClearSleep(); Engine.Pause(); _shell.ShowToast("Sleep timer — paused"); }
+            OnPropertyChanged(nameof(SleepLabel));
+        }
+        if (IsPlaying && DateTime.Now - _lastSave > TimeSpan.FromSeconds(10)) SaveSession();
+    }
+
+    // ---------- sleep timer ----------
+
+    /// <summary>"off", "end" (end of this track) or a number of minutes.</summary>
+    [RelayCommand]
+    public void SetSleep(string what)
+    {
+        _sleepAt = null; _sleepAfterTrack = false;
+        if (what == "end") _sleepAfterTrack = true;
+        else if (int.TryParse(what, out var min) && min > 0) _sleepAt = DateTime.Now.AddMinutes(min);
+        OnPropertyChanged(nameof(SleepLabel)); OnPropertyChanged(nameof(SleepOn));
+        _shell.ShowToast(_sleepAfterTrack ? "Sleep timer — stopping after this track" : _sleepAt != null ? $"Sleep timer — {what} min" : "Sleep timer off");
+        // Stopping at the end of the track means no gapless hand-off into the next one.
+        if (Current != null) Engine.PrepareNext(_sleepAfterTrack ? null : _queue.PeekNext(auto: true));
+    }
+
+    private void ClearSleep()
+    {
+        _sleepAt = null; _sleepAfterTrack = false;
+        OnPropertyChanged(nameof(SleepLabel)); OnPropertyChanged(nameof(SleepOn));
+    }
+
+    // ---------- resume where you left off ----------
+
+    public void SaveSession()
+    {
+        _lastSave = DateTime.Now;
+        _shell.Settings.LastSession = SessionSnapshot.From(_queue, Engine.Position.TotalSeconds) ?? _shell.Settings.LastSession;
+        _shell.Settings.Save();
+    }
+
+    /// <summary>Cues the last session (paused) once the catalogue is loaded.</summary>
+    public void RestoreSession()
+    {
+        if (Current != null || _shell.Settings.LastSession?.Resolve(_shell.Releases) is not { } s) return;
+        _queue.Set(s.Items, s.Index, _shell.Settings.LastSession.Kind);
+        _ = Engine.PlayAsync(_queue.Current!, autoplay: false, at: TimeSpan.FromSeconds(_shell.Settings.LastSession.Position));
+    }
     partial void OnVolumeChanged(float value) { Engine.Volume = value; _shell.Settings.Volume = value; }
 
     partial void OnCurrentChanged(QueueItem? value)
@@ -109,6 +170,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     private void SyncState()
     {
         IsPlaying = Engine.IsPlaying;
+        OnPropertyChanged(nameof(TaskbarState));
         IsLoading = Engine.IsLoading;
         _tracker.SetPlaying(IsPlaying);
         _media?.SetPlaying(IsPlaying, Current != null);
@@ -117,21 +179,32 @@ public sealed partial class PlayerViewModel : ObservableObject
     private void OnStarted(QueueItem item, bool gapless)
     {
         if (gapless) _queue.Next(auto: true);
-        _tracker.Begin(item, playing: true);
+        _tracker.Begin(item, playing: Engine.IsPlaying);
         _shell.Settings.ShuffleHeard.Add(item.Id);
         Current = item;
         Position = 0;
         Duration = Engine.Duration.TotalSeconds;
         SyncState();
-        _media?.Update(item.Track.Title, item.Release.Artist, item.Release.Title, Api.Absolute(item.Release.Cover), true, true);
-        Engine.PrepareNext(_queue.PeekNext(auto: true));
+        _media?.Update(item.Track.Title, item.Release.Artist, item.Release.Title, Api.Absolute(item.Release.Cover), Engine.IsPlaying, true);
+        Engine.PrepareNext(_sleepAfterTrack ? null : _queue.PeekNext(auto: true));
+        SaveSession();
     }
 
     private void OnFinished()
     {
+        if (_sleepAfterTrack)
+        {
+            // Sleep timer "end of track": cue the next one up, paused.
+            ClearSleep();
+            _tracker.Finish();
+            if (_queue.Next(auto: true) is { } cue) _ = Engine.PlayAsync(cue, autoplay: false);
+            else Engine.EndOfQueue();
+            _shell.ShowToast("Sleep timer — stopped at the end of the track");
+            return;
+        }
         var next = _queue.Next(auto: true);
         if (next != null) _ = Engine.PlayAsync(next);
-        else { _tracker.Finish(); SyncState(); }
+        else { _tracker.Finish(); Engine.EndOfQueue(); Position = 0; }
     }
 
     // ---------- starting playback ----------
@@ -219,6 +292,7 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     public void Shutdown()
     {
+        SaveSession();
         _tracker.Finish(flush: false);
         _tracker.FlushBlocking();
         Engine.Dispose();

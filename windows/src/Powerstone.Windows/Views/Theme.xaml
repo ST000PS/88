@@ -23,6 +23,13 @@
     <c:NullToVisibilityConverter x:Key="NullVis" />
     <c:BoolToBrushConverter x:Key="RoseIfTrue" True="{StaticResource Rose}" False="{StaticResource Text}" />
     <c:EqualsConverter x:Key="Eq" />
+
+    <!-- 16 px glyphs for the taskbar thumbnail buttons -->
+    <DrawingImage x:Key="IconPrev"><DrawingImage.Drawing><GeometryDrawing Brush="White" Geometry="M2,1 h2 v14 h-2 Z M14,1 L5,8 L14,15 Z" /></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="IconNext"><DrawingImage.Drawing><GeometryDrawing Brush="White" Geometry="M12,1 h2 v14 h-2 Z M2,1 L11,8 L2,15 Z" /></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="IconPlay"><DrawingImage.Drawing><GeometryDrawing Brush="White" Geometry="M3,1 L14,8 L3,15 Z" /></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="IconPause"><DrawingImage.Drawing><GeometryDrawing Brush="White" Geometry="M3,1 h4 v14 h-4 Z M9,1 h4 v14 h-4 Z" /></DrawingImage.Drawing></DrawingImage>
+    <c:BoolToObjectConverter x:Key="PlayPauseIcon" True="{StaticResource IconPause}" False="{StaticResource IconPlay}" />
     <c:BoolToBrushConverter x:Key="RoseOrDim" True="{StaticResource Rose}" False="{StaticResource Dim}" />
 
     <Style TargetType="Window">

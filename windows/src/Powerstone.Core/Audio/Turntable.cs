@@ -79,7 +79,7 @@ public sealed class TurntableSampleProvider : ISampleProvider
         {
             if (_mode == Mode.Stopped)
             {
-                Array.Clear(buffer, offset, count);
+                OutputBuffer.Clear(buffer, offset, count);
                 return count;
             }
             var frames = count / _channels;
@@ -93,7 +93,7 @@ public sealed class TurntableSampleProvider : ISampleProvider
                     if (left > 0)
                     {
                         var n = Math.Min(left, frames - o);
-                        Array.Copy(_buf, (int)_pos * _channels, buffer, offset + o * _channels, n * _channels);
+                        OutputBuffer.Copy(_buf, (int)_pos * _channels, buffer, offset + o * _channels, n * _channels);
                         _pos += n; o += n;
                         if ((int)_pos >= _bufFrames) { _bufFrames = 0; _pos = 0; }
                         continue;
@@ -123,7 +123,7 @@ public sealed class TurntableSampleProvider : ISampleProvider
                     {
                         _mode = Mode.Stopped;
                         raise = !_brakeDoneRaised; _brakeDoneRaised = true;
-                        Array.Clear(buffer, offset + o * _channels, (frames - o) * _channels);
+                        OutputBuffer.Clear(buffer, offset + o * _channels, (frames - o) * _channels);
                         o = frames;
                     }
                     else

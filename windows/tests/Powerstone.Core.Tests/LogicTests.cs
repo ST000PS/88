@@ -186,3 +186,37 @@ public class LogicTests
         Assert.Contains(pl.Id, Settings.Load(dir).PlaylistsDeleted);
     }
 }
+
+public class SessionTests
+{
+    private static Release Rel(string id, int n) => new() { Id = id, Title = id, Tracks = Enumerable.Range(1, n).Select(i => new Track { N = i, Title = $"{id}{i}" }).ToList() };
+
+    [Fact]
+    public void SessionSurvivesASaveAndReload()
+    {
+        var a = Rel("a", 3); var b = Rel("b", 2);
+        var q = new PlayQueue(() => new[] { a, b }, (_, _) => new());
+        q.Set(new[] { new QueueItem(a, a.Tracks[0]), new QueueItem(b, b.Tracks[1]), new QueueItem(a, a.Tracks[2]) }, 1, QueueKind.Shuffle);
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        var s = Settings.Load(dir);
+        s.LastSession = SessionSnapshot.From(q, 42.5);
+        s.Save();
+        var loaded = Settings.Load(dir).LastSession!;
+        Assert.Equal(QueueKind.Shuffle, loaded.Kind);
+        Assert.Equal(42.5, loaded.Position);
+        var (items, index) = loaded.Resolve(new[] { a, b })!.Value;
+        Assert.Equal(3, items.Count);
+        Assert.Equal("b/2", items[index].Id);
+    }
+
+    [Fact]
+    public void TracksThatDisappearedAreSkipped()
+    {
+        var a = Rel("a", 1);
+        var snap = new SessionSnapshot(new() { "gone/1", "a/1", "a/9" }, 1, QueueKind.List, 0);
+        var (items, index) = snap.Resolve(new[] { a })!.Value;
+        Assert.Single(items);
+        Assert.Equal(0, index);
+        Assert.Null(new SessionSnapshot(new() { "gone/1" }, 0, QueueKind.List, 0).Resolve(new[] { a }));
+    }
+}

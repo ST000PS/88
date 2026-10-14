@@ -164,3 +164,41 @@ public class SequencerEdgeTests
         Assert.Equal(buf.Length, seq.Read(buf, 0, buf.Length)); // and stays silent afterwards
     }
 }
+
+/// <summary>
+/// NAudio's output path hands sample providers a byte[] disguised as float[] (WaveBuffer).
+/// Array.Copy / Array.Clear / Span on it throw or touch the wrong range, so providers must
+/// write it element by element. These run every provider the way the real output does.
+/// </summary>
+public class OutputBufferTests
+{
+    private static int ReadThroughWaveBuffer(ISampleProvider p, int floats)
+    {
+        var wb = new WaveBuffer(floats * 4);
+        Array.Fill(wb.ByteBuffer, (byte)0x7F); // garbage, to prove silence really gets written
+        var n = p.Read(wb.FloatBuffer, 0, floats);
+        for (var i = 0; i < n; i++) Assert.True(float.IsFinite(wb.FloatBuffer[i]) && Math.Abs(wb.FloatBuffer[i]) <= 1.5f, $"sample {i} = {wb.FloatBuffer[i]}");
+        return n;
+    }
+
+    [Fact]
+    public void TurntableStopAndSpinUpWorkOnTheRealOutputBuffer()
+    {
+        var tt = new TurntableSampleProvider(new Sine(440, 44100 * 10));
+        ReadThroughWaveBuffer(tt, 8820);
+        tt.Brake(0.45);
+        for (var i = 0; i < 20; i++) ReadThroughWaveBuffer(tt, 8820); // winds down, then silence
+        Assert.True(tt.IsStopped);
+        tt.SpinUp();
+        for (var i = 0; i < 20; i++) Assert.Equal(8820, ReadThroughWaveBuffer(tt, 8820)); // the reported crash
+        Assert.False(tt.IsStopped);
+    }
+
+    [Fact]
+    public void SequencerSilenceIsWrittenOnTheRealOutputBuffer()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat);
+        seq.SetTrack(new Sine(440, 100));
+        Assert.Equal(4000, ReadThroughWaveBuffer(seq, 4000)); // track ends early: rest must be zeros, not garbage
+    }
+}

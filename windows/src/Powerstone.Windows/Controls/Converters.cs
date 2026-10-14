@@ -74,3 +74,11 @@ public sealed class Not : IValueConverter
     public object Convert(object? value, Type t, object? p, CultureInfo c) => value is not true;
     public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => value is not true;
 }
+
+public sealed class BoolToObjectConverter : IValueConverter
+{
+    public object? True { get; set; }
+    public object? False { get; set; }
+    public object? Convert(object? value, Type t, object? p, CultureInfo c) => value is true ? True : False;
+    public object ConvertBack(object? value, Type t, object? p, CultureInfo c) => throw new NotSupportedException();
+}

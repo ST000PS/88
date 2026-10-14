@@ -5,7 +5,17 @@
         Title="88.8FM" Width="1220" Height="800" MinWidth="760" MinHeight="520"
         Icon="Assets/app.ico" WindowStartupLocation="CenterScreen"
         Background="{StaticResource Ink}" Foreground="{StaticResource Text}" FontFamily="{StaticResource Mono}">
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo Description="{Binding Player.Title}" ProgressState="{Binding Player.TaskbarState}" ProgressValue="{Binding Player.Progress}">
+            <TaskbarItemInfo.ThumbButtonInfos>
+                <ThumbButtonInfo Description="Previous" ImageSource="{StaticResource IconPrev}" Command="{Binding Player.PreviousCommand}" />
+                <ThumbButtonInfo Description="Play / pause" ImageSource="{Binding Player.IsPlaying, Converter={StaticResource PlayPauseIcon}}" Command="{Binding Player.PlayPauseCommand}" />
+                <ThumbButtonInfo Description="Next" ImageSource="{StaticResource IconNext}" Command="{Binding Player.NextCommand}" />
+            </TaskbarItemInfo.ThumbButtonInfos>
+        </TaskbarItemInfo>
+    </Window.TaskbarItemInfo>
     <Window.InputBindings>
+        <KeyBinding Key="M" Modifiers="Ctrl" Command="{Binding ToggleMiniCommand}" />
         <KeyBinding Key="Space" Modifiers="Ctrl" Command="{Binding Player.PlayPauseCommand}" />
         <KeyBinding Key="Right" Modifiers="Ctrl" Command="{Binding Player.NextCommand}" />
         <KeyBinding Key="Left" Modifiers="Ctrl" Command="{Binding Player.PreviousCommand}" />
@@ -90,8 +100,12 @@
                     <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" />
                     <TextBlock Text="{Binding Subtitle}" Style="{StaticResource DimText}" />
                     <TextBlock Text="{Binding Meta}" Style="{StaticResource DimText}" />
-                    <TextBlock Text="PREVIEW" Foreground="{StaticResource Rose}" FontSize="10" FontWeight="Bold"
-                               Visibility="{Binding IsPreview, Converter={StaticResource Vis}}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="PREVIEW" Foreground="{StaticResource Rose}" FontSize="10" FontWeight="Bold" Margin="0,0,10,0"
+                                   Visibility="{Binding IsPreview, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="{Binding SleepLabel}" Foreground="{StaticResource Rose}" FontSize="10"
+                                   Visibility="{Binding SleepLabel, Converter={StaticResource NullVis}}" />
+                    </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="2" VerticalAlignment="Center" MaxWidth="640">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -134,6 +148,23 @@
                             Command="{Binding DataContext.GoSoundCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
                     <Button Style="{StaticResource Icon}" Content="&#xE8FD;" ToolTip="Now playing &amp; up next"
                             Command="{Binding DataContext.GoNowPlayingCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <Button Style="{StaticResource Icon}" Content="&#xE708;" ToolTip="Sleep timer" Click="Sleep_Click"
+                            Foreground="{Binding SleepOn, Converter={StaticResource RoseOrDim}}">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="15 minutes" Command="{Binding SetSleepCommand}" CommandParameter="15" />
+                                <MenuItem Header="30 minutes" Command="{Binding SetSleepCommand}" CommandParameter="30" />
+                                <MenuItem Header="45 minutes" Command="{Binding SetSleepCommand}" CommandParameter="45" />
+                                <MenuItem Header="1 hour" Command="{Binding SetSleepCommand}" CommandParameter="60" />
+                                <MenuItem Header="1½ hours" Command="{Binding SetSleepCommand}" CommandParameter="90" />
+                                <MenuItem Header="End of this track" Command="{Binding SetSleepCommand}" CommandParameter="end" />
+                                <Separator />
+                                <MenuItem Header="Off" Command="{Binding SetSleepCommand}" CommandParameter="off" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button Style="{StaticResource Icon}" Content="&#xE944;" ToolTip="Mini player (Ctrl+M)"
+                            Command="{Binding DataContext.ToggleMiniCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </StackPanel>
             </Grid>
         </Border>

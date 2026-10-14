@@ -28,6 +28,35 @@ public enum VinylStop { Off, Short, Medium, Long }
 
 public enum RepeatMode { Off, One, All }
 
+/// <summary>What was playing when the app closed, so it can pick up where it left off.</summary>
+public sealed record SessionSnapshot(List<string> Ids, int Index, QueueKind Kind, double Position)
+{
+    public static SessionSnapshot? From(PlayQueue q, double position) =>
+        q.Current == null ? null : new(q.Items.Select(i => i.Id).ToList(), q.Index, q.Kind, position);
+
+    /// <summary>Rebuilds the queue from the catalogue; tracks that no longer exist are skipped.</summary>
+    public (List<QueueItem> Items, int Index)? Resolve(IReadOnlyList<Release> releases)
+    {
+        var byId = releases.ToDictionary(r => r.Id);
+        var items = new List<QueueItem>();
+        var index = -1;
+        for (var i = 0; i < Ids.Count; i++)
+        {
+            var id = Ids[i];
+            var cut = id.LastIndexOf('/');
+            if (cut <= 0 || !int.TryParse(id[(cut + 1)..], out var n) || !byId.TryGetValue(id[..cut], out var rel)) continue;
+            var t = rel.Tracks.FirstOrDefault(x => x.N == n);
+            if (t == null) continue;
+            if (i == Index) index = items.Count;
+            items.Add(new QueueItem(rel, t));
+        }
+        if (items.Count == 0) return null;
+        return (items, index < 0 ? 0 : index);
+    }
+}
+
+public sealed record WindowPlacement(double Left, double Top, double Width, double Height, bool Maximized);
+
 public static class VinylStopExt
 {
     public static double Seconds(this VinylStop v) => v switch { VinylStop.Short => 0.45, VinylStop.Medium => 0.9, VinylStop.Long => 1.6, _ => 0 };
@@ -47,6 +76,11 @@ public sealed class Settings
     public List<string> PlaylistsDeleted { get; set; } = new();
     /// <summary>True while playlists were made signed-out and still need merging into the account.</summary>
     public bool PlaylistsGuest { get; set; }
+    public SessionSnapshot? LastSession { get; set; }
+    public WindowPlacement? Window { get; set; }
+    public bool MiniOnTop { get; set; } = true;
+    public double? MiniLeft { get; set; }
+    public double? MiniTop { get; set; }
 
     private string? _file;
 
