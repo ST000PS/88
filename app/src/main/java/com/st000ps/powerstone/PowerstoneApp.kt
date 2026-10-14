@@ -11,7 +11,9 @@ import com.st000ps.powerstone.data.Me
 import com.st000ps.powerstone.data.PlaylistStore
 import com.st000ps.powerstone.data.Quality
 import com.st000ps.powerstone.data.Release
+import com.st000ps.powerstone.data.SessionStore
 import com.st000ps.powerstone.data.Settings
+import com.st000ps.powerstone.data.SleepState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,6 +26,7 @@ class PowerstoneApp : Application() {
     lateinit var settings: Settings private set
     lateinit var playlists: PlaylistStore private set
     lateinit var history: ListeningHistory private set
+    lateinit var session: SessionStore private set
 
     /** App-wide scope for work that should outlive a screen (syncing, reporting plays). */
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -32,12 +35,18 @@ class PowerstoneApp : Application() {
     val releases = MutableStateFlow<List<Release>>(emptyList())
     val me = MutableStateFlow(Me())
 
+    /** Sleep timer, set from the UI and carried out by the playback service. */
+    val sleep = MutableStateFlow(SleepState())
+
     override fun onCreate() {
         super.onCreate()
         api = Api(this)
         settings = Settings(this)
         playlists = PlaylistStore(api, settings, filesDir, scope)
         history = ListeningHistory(filesDir, api.json)
+        session = SessionStore(this, api.json)
+        session.loadMe()?.let { me.value = it }
+        me.onEach(session::saveMe).launchIn(scope)
         api.cachedCatalog()?.let { releases.value = it.releases }
         settings.eq.onEach(AudioFx::apply).launchIn(scope)
         AudioFx.spectrumOn = settings.visualizerOn

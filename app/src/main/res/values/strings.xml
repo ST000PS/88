@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">88.8FM</string>
+    <string name="widget_description">Now playing on 88.8FM, with play / pause, skip and shuffle.</string>
 </resources>

@@ -3,7 +3,10 @@ package com.st000ps.powerstone.playback
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
+import androidx.core.graphics.drawable.toBitmap
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -22,8 +25,23 @@ import com.st000ps.powerstone.app
 import com.st000ps.powerstone.audio.DjEqProcessor
 import com.st000ps.powerstone.audio.VinylPlayer
 import com.st000ps.powerstone.data.PlayEvent
+import com.st000ps.powerstone.data.SavedSession
+import com.st000ps.powerstone.data.SleepState
+import com.st000ps.powerstone.data.resolve
 import com.st000ps.powerstone.ui.MainActivity
+import com.st000ps.powerstone.widget.PlayerWidget
+import com.st000ps.powerstone.widget.WidgetState
+import coil.imageLoader
+import coil.request.ImageRequest
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 /**
@@ -32,9 +50,26 @@ import kotlinx.coroutines.launch
  */
 @OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
+    companion object {
+        /** The running service, for the home-screen widget's buttons (same process). */
+        @Volatile var instance: PlaybackService? = null
+            private set
+        val isRunning get() = instance != null
+    }
+
     private var session: MediaSession? = null
     private lateinit var exo: ExoPlayer
     private lateinit var tracker: PlayTracker
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val handler = Handler(Looper.getMainLooper())
+    private val sleepRunnable = Runnable { onSleepTimer() }
+    private val saveRunnable = object : Runnable {
+        override fun run() { saveSession(); if (exo.isPlaying) handler.postDelayed(this, 10_000) }
+    }
+    private var artUrl: String? = null
+    private var art: android.graphics.Bitmap? = null
+    private var artJob: Job? = null
+    private var lastWidget: WidgetState? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -60,12 +95,128 @@ class PlaybackService : MediaSessionService() {
         tracker = PlayTracker(exo)
         exo.addListener(tracker)
         exo.addListener(QueueExtender(exo))
+        exo.addListener(object : Player.Listener {
+            override fun onEvents(player: Player, events: Player.Events) {
+                pushWidget()
+                if (events.contains(Player.EVENT_IS_PLAYING_CHANGED)) {
+                    handler.removeCallbacks(saveRunnable)
+                    if (player.isPlaying) handler.postDelayed(saveRunnable, 10_000) else saveSession()
+                }
+                if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) saveSession()
+            }
+
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                // Sleep timer "end of track": ExoPlayer paused at the end of the item; that was the one.
+                if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM && app.sleep.value.endOfTrack) {
+                    app.sleep.value = SleepState()
+                }
+            }
+        })
+        app.sleep.onEach(::applySleep).launchIn(scope)
 
         val openApp = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        session = MediaSession.Builder(this, VinylPlayer(exo, app.settings)).setSessionActivity(openApp).build()
+        session = MediaSession.Builder(this, VinylPlayer(exo, app.settings))
+            .setSessionActivity(openApp)
+            .setCallback(object : MediaSession.Callback {
+                // Bluetooth play / Android's media resumption after the app was closed: the last queue.
+                override fun onPlaybackResumption(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+                    val restored = restoredItems()
+                        ?: return Futures.immediateFailedFuture(UnsupportedOperationException("Nothing to resume"))
+                    return Futures.immediateFuture(restored)
+                }
+            })
+            .build()
+        instance = this
+        restoreSession()
+        pushWidget()
+    }
+
+    // ---------- resume where you left off ----------
+
+    private fun saveSession() {
+        if (exo.mediaItemCount == 0) return
+        val ids = (0 until exo.mediaItemCount).map { exo.getMediaItemAt(it).mediaId }
+        val kind = Queue.kindOf(exo.currentMediaItem)?.name ?: QueueKind.LIST.name
+        app.session.save(SavedSession(ids, exo.currentMediaItemIndex, exo.currentPosition.coerceAtLeast(0), kind))
+    }
+
+    private fun restoredItems(): MediaSession.MediaItemsWithStartPosition? {
+        val saved = app.session.load() ?: return null
+        val (items, start) = saved.resolve(app.releases.value) ?: return null
+        val kind = runCatching { QueueKind.valueOf(saved.kind) }.getOrDefault(QueueKind.LIST)
+        val media = items.mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, kind) }
+        if (media.isEmpty()) return null
+        val pos = if (saved.index in items.indices && start < media.size) saved.positionMs else 0L
+        return MediaSession.MediaItemsWithStartPosition(media, start.coerceIn(0, media.lastIndex), pos)
+    }
+
+    /** Cue the last session (paused), so the app, widget and mini player open where you left off. */
+    private fun restoreSession() {
+        if (exo.mediaItemCount > 0) return
+        val r = restoredItems() ?: return
+        exo.setMediaItems(r.mediaItems, r.startIndex, r.startPositionMs)
+        exo.prepare()
+    }
+
+    // ---------- sleep timer ----------
+
+    private fun applySleep(s: SleepState) {
+        handler.removeCallbacks(sleepRunnable)
+        exo.pauseAtEndOfMediaItems = s.endOfTrack
+        s.endAt?.let { handler.postDelayed(sleepRunnable, (it - System.currentTimeMillis()).coerceAtLeast(0)) }
+    }
+
+    private fun onSleepTimer() {
+        app.sleep.value = SleepState()
+        session?.player?.pause() // through the vinyl player: winds down like a turntable
+    }
+
+    // ---------- home-screen widget ----------
+
+    /** Called by the widget's buttons (main thread). */
+    fun widgetCommand(what: String) {
+        val p = session?.player ?: return
+        when (what) {
+            "play_pause" -> if (p.isPlaying) p.pause() else { if (p.playbackState == Player.STATE_IDLE) p.prepare(); p.play() }
+            "next" -> p.seekToNextMediaItem()
+            "previous" -> p.seekToPrevious()
+            "shuffle" -> {
+                val picks = Queue.smartShuffle(app, 60).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.SHUFFLE) }
+                if (picks.isNotEmpty()) { p.setMediaItems(picks, 0, 0); p.prepare(); p.play() }
+            }
+        }
+    }
+
+    private fun pushWidget() {
+        val item = exo.currentMediaItem
+        val md = exo.mediaMetadata
+        val url = md.artworkUri?.toString()
+        if (url != artUrl) {
+            artUrl = url; art = null
+            artJob?.cancel()
+            if (url != null) artJob = scope.launch {
+                val result = imageLoader.execute(ImageRequest.Builder(this@PlaybackService).data(url).size(200).allowHardware(false).build())
+                // Small on purpose: widget updates travel over Binder, which caps their size.
+                art = result.drawable?.toBitmap(200, 200)
+                pushWidget()
+            }
+        }
+        val next = WidgetState(
+            title = md.title?.toString() ?: "",
+            subtitle = listOfNotNull(md.artist, md.albumTitle).joinToString(" · "),
+            playing = exo.playWhenReady && exo.playbackState != Player.STATE_ENDED && item != null,
+            art = art,
+            hasTrack = item != null,
+        )
+        if (next == lastWidget) return // only redraw when something visible changed
+        lastWidget = next
+        PlayerWidget.update(this, next)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = session
@@ -76,12 +227,17 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        instance = null
+        handler.removeCallbacksAndMessages(null)
         session?.run {
+            saveSession()
             tracker.finish()
             exo.release()
             release()
         }
         session = null
+        scope.cancel()
+        PlayerWidget.update(this, PlayerWidget.state.copy(playing = false))
         super.onDestroy()
     }
 

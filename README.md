@@ -35,6 +35,18 @@ headset controls)
 - **Visualizer**: a live spectrum of the audio after the EQ, with four styles (tap to switch).
 - Audio quality: Auto (by connection), 320, 160 or 64 kbps.
 
+**Home-screen widget, sleep timer, resume**
+- **Widget**:
+  - A 4×1 row with art, title, previous, play/pause and next. Resize it taller to get a card with
+    big artwork and shuffle-everything.
+  - When the app isn't running it shows *Resume* or *Shuffle*. These open the app and start
+    playing, because Android doesn't let widgets start playback in the background.
+- **Sleep timer** (moon button on the player): 15–90 minutes or the end of the current track. It
+  pauses with the vinyl stop.
+- **Up next**: the queue on the player screen. Tap a track to jump to it.
+- **Resume where you left off**: the queue and position are saved and come back paused on the next
+  launch. Bluetooth play buttons and Android's media resumption can also restart them.
+
 **Playlists & sharing**
 - Create, rename, reorder, remove tracks and delete playlists. They sync with your account (the
   site's `/api/playlists`, including deletions). Playlists made while signed out are merged in

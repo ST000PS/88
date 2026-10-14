@@ -179,5 +179,9 @@ class MainActivity : ComponentActivity() {
 
     private fun handleLink(intent: Intent?) {
         if (intent?.action == Intent.ACTION_VIEW) intent.data?.let(vm::openLink)
+        intent?.getStringExtra(com.st000ps.powerstone.widget.PlayerWidget.EXTRA_WIDGET_ACTION)?.let {
+            intent.removeExtra(com.st000ps.powerstone.widget.PlayerWidget.EXTRA_WIDGET_ACTION)
+            vm.widgetAction(it)
+        }
     }
 }

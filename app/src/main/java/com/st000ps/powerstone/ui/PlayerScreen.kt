@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -37,6 +38,8 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -166,7 +169,59 @@ private fun PlayerHeader(state: UiState, vm: AppViewModel, close: () -> Unit, op
         if (now.video != null) IconButton(onClick = { vm.setVideoOn(!state.videoOn) }) {
             Icon(if (state.videoOn) Icons.Filled.Videocam else Icons.Filled.VideocamOff, "Video", tint = if (state.videoOn) Rose else Dim)
         }
+        SleepButton(state, vm)
         IconButton(onClick = openSound) { Icon(Icons.Filled.Equalizer, "Sound") }
+    }
+}
+
+/** Sleep timer: pause (with the vinyl stop) after a while, or at the end of this track. */
+@Composable
+private fun SleepButton(state: UiState, vm: AppViewModel) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) { Icon(Icons.Filled.Bedtime, "Sleep timer", tint = if (state.sleep.active) Rose else Dim) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            Text("SLEEP TIMER", style = MaterialTheme.typography.labelSmall, color = Dim, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+            listOf(15, 30, 45, 60, 90).forEach { m ->
+                DropdownMenuItem(text = { Text(if (m < 60) "$m minutes" else if (m == 60) "1 hour" else "1½ hours") }, onClick = { open = false; vm.setSleep(m) })
+            }
+            DropdownMenuItem(text = { Text("End of this track") }, onClick = { open = false; vm.setSleep(null, endOfTrack = true) })
+            if (state.sleep.active) {
+                HorizontalDivider()
+                DropdownMenuItem(text = { Text("Off") }, onClick = { open = false; vm.setSleep(null) })
+            }
+        }
+    }
+}
+
+/** "SLEEP 23:10" / "SLEEP · END OF TRACK", ticking once a second. */
+@Composable
+private fun SleepLabel(state: UiState) {
+    val s = state.sleep
+    if (!s.active) return
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(s) { while (true) { now = System.currentTimeMillis(); delay(1000) } }
+    Text(
+        if (s.endOfTrack) "SLEEP · END OF TRACK" else "SLEEP " + formatDuration(((s.endAt ?: now) - now).coerceAtLeast(0) / 1000.0),
+        style = MaterialTheme.typography.labelSmall, color = Rose,
+    )
+}
+
+/** The rest of the queue; tap to jump. */
+@Composable
+private fun UpNext(state: UiState, vm: AppViewModel) {
+    if (state.queue.size < 2) return
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Text("UP NEXT", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Rose, modifier = Modifier.padding(vertical = 8.dp))
+        state.queue.forEach { q ->
+            Row(Modifier.fillMaxWidth().clickable { vm.jumpTo(q.index) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(q.title, color = if (q.current) Rose else MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(q.album, style = MaterialTheme.typography.bodySmall, color = Dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (q.current) Text("NOW", style = MaterialTheme.typography.labelSmall, color = Rose)
+            }
+        }
     }
 }
 
@@ -274,6 +329,8 @@ private fun PlayerControls(state: UiState, vm: AppViewModel, openRelease: (Strin
         }
         if (compact) Row { repeatOne(); repeatTape() } else Column(horizontalAlignment = Alignment.CenterHorizontally) { repeatOne(); repeatTape() }
     }
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { SleepLabel(state) }
+    UpNext(state, vm)
     Spacer(Modifier.height(if (compact) 8.dp else 24.dp))
 }
 

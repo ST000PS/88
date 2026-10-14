@@ -21,6 +21,7 @@ import com.st000ps.powerstone.data.Playlist
 import com.st000ps.powerstone.data.Quality
 import com.st000ps.powerstone.data.Release
 import com.st000ps.powerstone.data.SharedPlaylist
+import com.st000ps.powerstone.data.SleepState
 import com.st000ps.powerstone.data.Stats
 import com.st000ps.powerstone.data.StatsMath
 import com.st000ps.powerstone.data.Track
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -63,6 +65,9 @@ data class NowPlaying(
     val volume: Float = 1f,
 )
 
+/** One line of the "Up next" list. */
+data class QueueEntry(val index: Int, val title: String, val album: String, val current: Boolean)
+
 data class UiState(
     val releases: List<Release> = emptyList(),
     val loading: Boolean = true,
@@ -77,6 +82,8 @@ data class UiState(
     val visualizerOn: Boolean = true,
     val password: PasswordState = PasswordState(),
     val now: NowPlaying = NowPlaying(),
+    val queue: List<QueueEntry> = emptyList(),
+    val sleep: SleepState = SleepState(),
 )
 
 /** One-off navigation requests (deep links, "open the playlist I just made"). */
@@ -122,9 +129,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         combine(app.releases, app.me, app.playlists.list, settings.eq, settings.vinyl) { rel, me, pls, eq, vinyl ->
             _state.update { it.copy(releases = rel, me = me, playlists = pls, eq = eq, vinyl = vinyl) }
         }.launchIn(viewModelScope)
+        app.sleep.onEach { s -> _state.update { it.copy(sleep = s) } }.launchIn(viewModelScope)
         refresh()
         connectPlayer()
     }
+
+    // ---------- sleep timer ----------
+
+    /** Minutes from now, or [endOfTrack]; null minutes and false = off. */
+    fun setSleep(minutes: Int?, endOfTrack: Boolean = false) {
+        app.sleep.value = SleepState(endAt = minutes?.let { System.currentTimeMillis() + it * 60_000L }, endOfTrack = endOfTrack)
+        toast(when {
+            endOfTrack -> "Sleep timer — stopping after this track"
+            minutes != null -> "Sleep timer — $minutes min"
+            else -> "Sleep timer off"
+        })
+    }
+
+    // ---------- widget ----------
+
+    private var pendingWidgetAction: String? = null
+
+    /** The widget opened the app to "resume" the last session or "shuffle"; runs once the player is connected. */
+    fun widgetAction(action: String) {
+        val c = controller
+        if (c == null) { pendingWidgetAction = action; return }
+        when (action) {
+            "resume" -> if (c.mediaItemCount > 0) { if (c.playbackState == Player.STATE_IDLE) c.prepare(); c.play() } else smartShuffle()
+            "shuffle" -> smartShuffle()
+        }
+    }
+
+    fun jumpTo(index: Int) { controller?.run { seekTo(index, 0); play() } }
 
     fun toast(msg: String) { _messages.trySend(msg) }
 
@@ -326,9 +362,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val c = runCatching { future.get() }.getOrNull() ?: return@addListener
             controller = c
             c.addListener(object : Player.Listener {
-                override fun onEvents(player: Player, events: Player.Events) = syncNow()
+                override fun onEvents(player: Player, events: Player.Events) {
+                    syncNow()
+                    if (events.containsAny(Player.EVENT_TIMELINE_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) syncQueue()
+                }
             })
             syncNow()
+            syncQueue()
+            pendingWidgetAction?.let { pendingWidgetAction = null; widgetAction(it) }
         }, ContextCompat.getMainExecutor(ctx))
 
         viewModelScope.launch {
@@ -364,6 +405,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 ),
             )
         }
+    }
+
+    /** The current track and what comes after it (a window, for long shuffles). */
+    private fun syncQueue() {
+        val c = controller ?: return
+        val cur = c.currentMediaItemIndex
+        val from = (cur - 1).coerceAtLeast(0)
+        val to = minOf(c.mediaItemCount, cur + 40)
+        val list = (from until to).map { i ->
+            val md = c.getMediaItemAt(i).mediaMetadata
+            QueueEntry(i, md.title?.toString() ?: "", md.albumTitle?.toString() ?: "", i == cur)
+        }
+        _state.update { it.copy(queue = list) }
     }
 
     /** Current playback position, read fresh (for keeping the music video locked to the audio). */

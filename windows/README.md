@@ -23,6 +23,17 @@ tracks for subscribers).
 - **Visualizer**: a live spectrum of the audio after the EQ. Click it to change style.
 - **Windows media controls**: keyboard media keys, the volume flyout and lock-screen card, and
   Bluetooth headset buttons.
+- **Mini player** (**Ctrl+M** or the player-bar button):
+  - A compact, draggable window with cover, title, transport, seek and a visualizer strip.
+  - It stays always on top; the pin turns that off.
+  - Click the cover to return to the full window; × quits.
+  - It remembers where you left it. Start in it with `88.8FM.exe --mini`.
+- **Taskbar**: previous / play-pause / next buttons in the taskbar thumbnail preview, and track
+  progress on the taskbar icon.
+- **Sleep timer** (moon button): 15–90 minutes or the end of the current track. It pauses with the
+  vinyl stop.
+- **Resume where you left off**: the queue and position come back paused on the next launch, and
+  the window reopens where it was.
 - **Playlists**: create, rename, reorder (right-click a track) and delete. They sync with your
   account, the same way as on the site and the Android app.
 - **Share links**: copy links to releases, tracks, tags and playlists. Shared playlists open with
@@ -40,7 +51,7 @@ tracks for subscribers).
 - **Play history**: plays are sent to your account (after 10 seconds of listening, as on the
   site), so stats stay in sync across the web, Android and Windows.
 
-Keyboard: **Ctrl+Space** play/pause, **Ctrl+←/→** previous/next, **Alt+←** back.
+Keyboard: **Ctrl+Space** play/pause, **Ctrl+←/→** previous/next, **Ctrl+M** mini player, **Alt+←** back.
 
 Not included:
 - Music videos. They need a video player that can send the session cookie; that's left for later.
