@@ -2,7 +2,7 @@
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
     <aapt:attr name="android:drawable">
         <vector android:width="12dp" android:height="12dp" android:viewportWidth="12" android:viewportHeight="12">
-            <path android:name="dot" android:fillColor="#E0303A" android:pathData="M6,6m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+            <path android:name="dot" android:fillColor="#FFF2F2F2" android:pathData="M6,6m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
         </vector>
     </aapt:attr>
     <target android:name="dot">

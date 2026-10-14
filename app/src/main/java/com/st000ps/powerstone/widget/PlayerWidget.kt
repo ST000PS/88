@@ -21,6 +21,7 @@ import android.view.View
 import android.widget.RemoteViews
 import androidx.annotation.VisibleForTesting
 import com.st000ps.powerstone.R
+import com.st000ps.powerstone.audio.Groove
 import com.st000ps.powerstone.playback.PlaybackService
 import com.st000ps.powerstone.ui.MainActivity
 
@@ -45,6 +46,8 @@ data class WidgetState(
     val trackNo: Int? = null,
     /** The track's id: seeds its sample-strip waveform, so a track always looks the same. */
     val trackKey: String = "",
+    /** The groove the pads play: matched to the track once the app has listened to it. */
+    val groove: Groove = Groove.DEFAULT,
     /** Bumped on every track change: alternates which copy of the tuning animation shows, so it replays. */
     val tune: Int = 0,
     /** Track position: while playing, the elapsedRealtime at which the track was at 0:00; while paused, [positionMs]. */
@@ -92,7 +95,6 @@ class PlayerWidget : AppWidgetProvider() {
         private const val ACTION = "com.st000ps.powerstone.widget.ACTION"
         private const val EXTRA = "what"
         private val TEMPOS = intArrayOf(70, 80, 90, 100, 115, 135)
-        private val PADS = intArrayOf(R.id.w_pads_70, R.id.w_pads_80, R.id.w_pads_90, R.id.w_pads_100, R.id.w_pads_115, R.id.w_pads_135)
         private val SEQ = intArrayOf(R.id.w_seq_70, R.id.w_seq_80, R.id.w_seq_90, R.id.w_seq_100, R.id.w_seq_115, R.id.w_seq_135)
         private val BARS = intArrayOf(R.id.w_bars_70, R.id.w_bars_80, R.id.w_bars_90, R.id.w_bars_100, R.id.w_bars_115, R.id.w_bars_135)
         /** Passed to MainActivity when the widget opens the app: "resume" or "shuffle". */
@@ -135,14 +137,14 @@ class PlayerWidget : AppWidgetProvider() {
                 RemoteViews(
                     mapOf(
                         SizeF(180f, 40f) to build(context, R.layout.widget_small, o),
-                        SizeF(250f, 165f) to build(context, R.layout.widget_large, o),
+                        SizeF(250f, 190f) to build(context, R.layout.widget_large, o),
                         SizeF(300f, 300f) to build(context, R.layout.widget_tall, o),
                         SizeF(390f, 330f) to build(context, R.layout.widget_tall_wide, o),
                     ),
                 )
             } else {
                 val h = mgr.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 40)
-                build(context, if (h >= 300) R.layout.widget_tall else if (h >= 165) R.layout.widget_large else R.layout.widget_small, o)
+                build(context, if (h >= 300) R.layout.widget_tall else if (h >= 190) R.layout.widget_large else R.layout.widget_small, o)
             }
             mgr.updateAppWidget(id, views)
         }
@@ -206,7 +208,7 @@ class PlayerWidget : AppWidgetProvider() {
                     setViewVisibility(R.id.w_record, if (hero == WidgetOptions.Hero.RECORD) View.VISIBLE else View.GONE)
                     setViewVisibility(R.id.w_cover, if (hero == WidgetOptions.Hero.COVER) View.VISIBLE else View.GONE)
                     setViewVisibility(R.id.w_art, View.GONE)
-                    sampler(s, art, live, playing, moving, band) { id, t, st -> px(id, t, st, 140) }
+                    sampler(context, s, art, live, moving)
                     // Record.
                     pair(R.id.w_sheen_on, R.id.w_sheen_off, moving)
                     setProgressBar(R.id.w_ring, 1000, if (live) s.progress() else 0, false)
@@ -235,6 +237,7 @@ class PlayerWidget : AppWidgetProvider() {
                     setOnClickPendingIntent(R.id.w_record, open)
                     setOnClickPendingIntent(R.id.w_cover, open)
                     setOnClickPendingIntent(R.id.w_sampler, open)
+                    setOnClickPendingIntent(R.id.w_hero_art, open)
                 }
                 val start = openApp(context, if (s.hasTrack) "resume" else "shuffle", 1)
                 val playIntent = if (live) command(context, "play_pause", 1) else start
@@ -269,37 +272,33 @@ class PlayerWidget : AppWidgetProvider() {
             }
             setProgressBar(R.id.w_wave_pos, 1000, if (live) s.progress() else 0, false)
             SEQ.forEachIndexed { i, v -> setViewVisibility(v, if (moving && i == band) View.VISIBLE else View.GONE) }
-            setViewVisibility(R.id.w_seq_rest, if (live && !moving) View.VISIBLE else View.GONE)
-            setViewVisibility(R.id.w_seq_off, if (live) View.GONE else View.VISIBLE)
+            // The groove's kicks and snares marked on the 16 steps.
+            val marks = if (live) context.resources.getIdentifier("w_seq_k${s.groove.kick}_s${s.groove.snare}", "drawable", context.packageName) else 0
+            setImageViewResource(R.id.w_seq_marks, if (marks != 0) marks else R.drawable.w_seq_off)
         }
 
         /**
-         * The sampler: pads finger-drumming at about the track's tempo (one animation per tempo band),
-         * dark when paused; the display (Silkscreen) shows the cover, SEQ (track), BPM, release, state and time.
+         * The hero: the cover beside the pads. While playing, four groove layers (kick, snare, hats,
+         * chops) are stacked on the pads, each a looping animation for this track's pattern at about
+         * its tempo. They go in as stable views (Android 12+), so the once-a-second refresh doesn't
+         * restart them; a new track or pattern swaps them. Paused: plain pads. Closed: unlit.
          */
-        private fun RemoteViews.sampler(
-            s: WidgetState, art: Uri?, live: Boolean, playing: Boolean, moving: Boolean, band: Int,
-            px: (Int, String, WidgetPixels.Style) -> Unit,
-        ) {
-            PADS.forEachIndexed { i, v -> setViewVisibility(v, if (moving && i == band) View.VISIBLE else View.GONE) }
-            setViewVisibility(R.id.w_pads_rest, if (live && !moving) View.VISIBLE else View.GONE)
+        private fun RemoteViews.sampler(context: Context, s: WidgetState, art: Uri?, live: Boolean, moving: Boolean) {
+            if (art != null) setImageViewUri(R.id.w_hero_art, art) else setImageViewResource(R.id.w_hero_art, R.mipmap.ic_launcher)
+            setInt(R.id.w_hero_art, "setImageAlpha", if (live) 255 else 120)
+            setViewVisibility(R.id.w_pads_rest, if (live) View.VISIBLE else View.GONE)
             setViewVisibility(R.id.w_pads_off, if (live) View.GONE else View.VISIBLE)
-            if (art != null) setImageViewUri(R.id.w_lcd_art, art) else setImageViewResource(R.id.w_lcd_art, R.mipmap.ic_launcher)
-            setInt(R.id.w_lcd_art, "setImageAlpha", if (live) 255 else 110)
-            val ink = if (live) WidgetPixels.Style.BRIGHT else WidgetPixels.Style.DIM
-            px(R.id.w_lcd_seq, "SEQ " + (s.trackNo?.let { "%02d".format(it) } ?: "--"), ink)
-            px(R.id.w_lcd_bpm, "BPM " + (s.bpm?.let { "%03d".format(it) } ?: "---"), if (playing) WidgetPixels.Style.LIVE else ink)
-            px(R.id.w_lcd_rel, if (s.hasTrack) s.release.ifEmpty { s.artist } else "88.8FM", if (live) WidgetPixels.Style.BODY else WidgetPixels.Style.DIM)
-            px(R.id.w_lcd_next_k, "NEXT", WidgetPixels.Style.DIM)
-            px(R.id.w_lcd_next, if (live) s.upNext.removePrefix("next › ").ifEmpty { "--" } else "--",
-                if (live) WidgetPixels.Style.BODY else WidgetPixels.Style.DIM)
-            px(R.id.w_lcd_state, if (playing) "PLAY" else if (live) "PAUSED" else if (s.hasTrack) "STOP" else "READY",
-                if (playing) WidgetPixels.Style.LIVE else WidgetPixels.Style.DIM)
-            setViewVisibility(R.id.w_lcd_time, if (live) View.VISIBLE else View.GONE)
-            if (live) {
-                val ticking = playing && s.startedAt > 0
-                setChronometer(R.id.w_lcd_time, if (ticking) s.startedAt else SystemClock.elapsedRealtime() - s.positionMs, null, ticking)
-            }
+            val tempo = TEMPOS[tempoBand(s.bpm)]
+            val g = s.groove
+            listOf(R.id.w_pl_k to "k${g.kick}", R.id.w_pl_s to "s${g.snare}", R.id.w_pl_h to "h${g.hat}", R.id.w_pl_c to "c${g.chop}")
+                .forEachIndexed { i, (box, pattern) ->
+                    removeAllViews(box)
+                    if (!moving) return@forEachIndexed
+                    val layout = context.resources.getIdentifier("w_pl_${pattern}_t$tempo", "layout", context.packageName)
+                    if (layout == 0) return@forEachIndexed
+                    val layer = RemoteViews(context.packageName, layout)
+                    if (Build.VERSION.SDK_INT >= 31) addStableView(box, layer, layout * 4 + i) else addView(box, layer)
+                }
         }
 
         private fun RemoteViews.pair(on: Int, off: Int, moving: Boolean) {

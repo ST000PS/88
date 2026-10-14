@@ -1,0 +1,112 @@
+<!-- Pad layer: c pattern 0 at about 80 BPM. Lit pads glow from beneath, bloom onto the gutter and
+     press down on each hit; stacked with the other layers over the unlit pads. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector android:width="100dp" android:height="100dp" android:viewportWidth="100" android:viewportHeight="100">
+            <path android:name="b9" android:fillAlpha="0" android:pathData="M1.40,23.20H21.20Q25.20,23.20 25.20,27.20V47.00Q25.20,51.00 21.20,51.00H1.40Q-2.60,51.00 -2.60,47.00V27.20Q-2.60,23.20 1.40,23.20Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="11.30" android:centerY="37.10" android:gradientRadius="19.21"><item android:offset="0" android:color="#55FFFFFF" /><item android:offset="0.6" android:color="#22FFFFFF" /><item android:offset="1" android:color="#00FFFFFF" /></gradient></aapt:attr></path>
+            <group android:name="g9" android:pivotX="11.30" android:pivotY="37.10">
+                <path android:name="l9" android:fillAlpha="0" android:pathData="M1.30,25.80H21.30Q22.60,25.80 22.60,27.10V47.10Q22.60,48.40 21.30,48.40H1.30Q0.00,48.40 0.00,47.10V27.10Q0.00,25.80 1.30,25.80Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="11.30" android:centerY="36.10" android:gradientRadius="16.27"><item android:offset="0" android:color="#FFFFFFFF" /><item android:offset="0.55" android:color="#FFE6E6E6" /><item android:offset="1" android:color="#FFA8A8A8" /></gradient></aapt:attr></path>
+            </group>
+            <path android:name="b13" android:fillAlpha="0" android:pathData="M1.40,-2.60H21.20Q25.20,-2.60 25.20,1.40V21.20Q25.20,25.20 21.20,25.20H1.40Q-2.60,25.20 -2.60,21.20V1.40Q-2.60,-2.60 1.40,-2.60Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="11.30" android:centerY="11.30" android:gradientRadius="19.21"><item android:offset="0" android:color="#55FFFFFF" /><item android:offset="0.6" android:color="#22FFFFFF" /><item android:offset="1" android:color="#00FFFFFF" /></gradient></aapt:attr></path>
+            <group android:name="g13" android:pivotX="11.30" android:pivotY="11.30">
+                <path android:name="l13" android:fillAlpha="0" android:pathData="M1.30,0.00H21.30Q22.60,0.00 22.60,1.30V21.30Q22.60,22.60 21.30,22.60H1.30Q0.00,22.60 0.00,21.30V1.30Q0.00,0.00 1.30,0.00Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="11.30" android:centerY="10.30" android:gradientRadius="16.27"><item android:offset="0" android:color="#FFFFFFFF" /><item android:offset="0.55" android:color="#FFE6E6E6" /><item android:offset="1" android:color="#FFA8A8A8" /></gradient></aapt:attr></path>
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="l9">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="6000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.95" />
+                    <keyframe android:fraction="0.0938" android:value="0.0" />
+                    <keyframe android:fraction="1.0" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b9">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="6000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.95" />
+                    <keyframe android:fraction="0.0938" android:value="0.0" />
+                    <keyframe android:fraction="1.0" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="g9">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="6000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.953" />
+                    <keyframe android:fraction="0.0312" android:value="1.0" />
+                    <keyframe android:fraction="1.0" android:value="1.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="g9">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="6000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.953" />
+                    <keyframe android:fraction="0.0312" android:value="1.0" />
+                    <keyframe android:fraction="1.0" android:value="1.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="l13">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="6000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.0" />
+                    <keyframe android:fraction="0.4992" android:value="0.0" />
+                    <keyframe android:fraction="0.5" android:value="0.72" />
+                    <keyframe android:fraction="0.5938" android:value="0.0" />
+                    <keyframe android:fraction="1.0" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b13">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="6000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.0" />
+                    <keyframe android:fraction="0.4992" android:value="0.0" />
+                    <keyframe android:fraction="0.5" android:value="0.72" />
+                    <keyframe android:fraction="0.5938" android:value="0.0" />
+                    <keyframe android:fraction="1.0" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="g13">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="6000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="1.0" />
+                    <keyframe android:fraction="0.4992" android:value="1.0" />
+                    <keyframe android:fraction="0.5" android:value="0.964" />
+                    <keyframe android:fraction="0.5312" android:value="1.0" />
+                    <keyframe android:fraction="1.0" android:value="1.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="g13">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="6000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="1.0" />
+                    <keyframe android:fraction="0.4992" android:value="1.0" />
+                    <keyframe android:fraction="0.5" android:value="0.964" />
+                    <keyframe android:fraction="0.5312" android:value="1.0" />
+                    <keyframe android:fraction="1.0" android:value="1.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+</animated-vector>

@@ -74,6 +74,14 @@ object WidgetStore {
         )
     }
 
+    /** Each track's groove, once the app has listened to it (see GrooveAnalyzer). */
+    fun groove(context: Context, trackId: String): com.st000ps.powerstone.audio.Groove? =
+        com.st000ps.powerstone.audio.Groove.decode(context.getSharedPreferences("grooves", Context.MODE_PRIVATE).getString(trackId, null))
+
+    fun setGroove(context: Context, trackId: String, g: com.st000ps.powerstone.audio.Groove) {
+        context.getSharedPreferences("grooves", Context.MODE_PRIVATE).edit().putString(trackId, g.encode()).apply()
+    }
+
     private fun day(): Long = java.util.Calendar.getInstance().run { get(java.util.Calendar.YEAR) * 1000L + get(java.util.Calendar.DAY_OF_YEAR) }
 
     /** Saves this cover (and its record label) and returns their file names; keeps only the newest few. */

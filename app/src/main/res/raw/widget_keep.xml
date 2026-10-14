@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget looks up its groove layers and sequencer marks by name (PlayerWidget.sampler / sampleStrip). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@layout/w_pl_*,@drawable/w_pl_*,@drawable/w_seq_k*" />

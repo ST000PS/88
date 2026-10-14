@@ -6,9 +6,9 @@
     <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp"
         android:text="ラジオ" android:fontFamily="sans-serif" android:textColor="#FF4A4A4A" android:textSize="8sp" />
     <TextView android:id="@+id/w_sleep" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:layout_marginEnd="4dp" android:fontFamily="monospace" android:text="zz" android:textColor="#FFC04A5E" android:textSize="10sp" android:visibility="gone" />
+        android:layout_marginEnd="4dp" android:fontFamily="monospace" android:text="zz" android:textColor="#FFF2F2F2" android:textSize="10sp" android:visibility="gone" />
     <Chronometer android:id="@+id/w_sleep_time" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:layout_marginEnd="10dp" android:fontFamily="monospace" android:textColor="#FFC04A5E" android:textSize="10sp" android:visibility="gone" />
+        android:layout_marginEnd="10dp" android:fontFamily="monospace" android:textColor="#FFF2F2F2" android:textSize="10sp" android:visibility="gone" />
     <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="5dp">
         <ProgressBar android:id="@+id/w_lamp_on" android:layout_width="9dp" android:layout_height="9dp"
             android:minWidth="9dp" android:maxWidth="9dp" android:minHeight="9dp" android:maxHeight="9dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"

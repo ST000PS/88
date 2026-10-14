@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The sample strip: this track as a sliced waveform (beat transients at its tempo, chop markers),
-     a rose playhead following progress, and a 16-step sequencer stepping through the pads' groove. -->
+<!-- The sample strip: this track as a sliced waveform with a white playhead on progress, and a 16-step
+     sequencer showing the groove the pads play (kicks bright, snares mid) with a playhead walking each bar. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="5dp"
         android:gravity="center_vertical" android:orientation="horizontal">
@@ -17,27 +17,25 @@
             android:progressDrawable="@drawable/w_wave_pos" />
     </FrameLayout>
     <FrameLayout android:layout_width="match_parent" android:layout_height="7dp" android:layout_marginTop="5dp">
+        <ImageView android:id="@+id/w_seq_marks" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:scaleType="fitXY" android:src="@drawable/w_seq_off" android:contentDescription="@null" />
         <ProgressBar android:id="@+id/w_seq_70" android:layout_width="match_parent" android:layout_height="match_parent"
             android:minHeight="7dp" android:maxHeight="7dp" android:maxWidth="2000dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_seq_t70" android:visibility="gone" />
+            android:indeterminateDrawable="@drawable/w_seq_head_t70" android:visibility="gone" />
         <ProgressBar android:id="@+id/w_seq_80" android:layout_width="match_parent" android:layout_height="match_parent"
             android:minHeight="7dp" android:maxHeight="7dp" android:maxWidth="2000dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_seq_t80" android:visibility="gone" />
+            android:indeterminateDrawable="@drawable/w_seq_head_t80" android:visibility="gone" />
         <ProgressBar android:id="@+id/w_seq_90" android:layout_width="match_parent" android:layout_height="match_parent"
             android:minHeight="7dp" android:maxHeight="7dp" android:maxWidth="2000dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_seq_t90" android:visibility="gone" />
+            android:indeterminateDrawable="@drawable/w_seq_head_t90" android:visibility="gone" />
         <ProgressBar android:id="@+id/w_seq_100" android:layout_width="match_parent" android:layout_height="match_parent"
             android:minHeight="7dp" android:maxHeight="7dp" android:maxWidth="2000dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_seq_t100" android:visibility="gone" />
+            android:indeterminateDrawable="@drawable/w_seq_head_t100" android:visibility="gone" />
         <ProgressBar android:id="@+id/w_seq_115" android:layout_width="match_parent" android:layout_height="match_parent"
             android:minHeight="7dp" android:maxHeight="7dp" android:maxWidth="2000dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_seq_t115" android:visibility="gone" />
+            android:indeterminateDrawable="@drawable/w_seq_head_t115" android:visibility="gone" />
         <ProgressBar android:id="@+id/w_seq_135" android:layout_width="match_parent" android:layout_height="match_parent"
             android:minHeight="7dp" android:maxHeight="7dp" android:maxWidth="2000dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_seq_t135" android:visibility="gone" />
-        <ImageView android:id="@+id/w_seq_rest" android:layout_width="match_parent" android:layout_height="match_parent"
-            android:scaleType="fitXY" android:src="@drawable/w_seq_rest" android:contentDescription="@null" android:visibility="gone" />
-        <ImageView android:id="@+id/w_seq_off" android:layout_width="match_parent" android:layout_height="match_parent"
-            android:scaleType="fitXY" android:src="@drawable/w_seq_off" android:contentDescription="@null" />
+            android:indeterminateDrawable="@drawable/w_seq_head_t135" android:visibility="gone" />
     </FrameLayout>
 </LinearLayout>

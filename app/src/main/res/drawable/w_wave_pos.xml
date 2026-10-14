@@ -4,8 +4,8 @@
     <item android:id="@android:id/progress">
         <scale android:scaleWidth="100%" android:scaleGravity="left|fill_vertical">
             <layer-list>
-                <item><shape><solid android:color="#26C04A5E" /></shape></item>
-                <item android:gravity="right|fill_vertical" android:width="2dp"><shape><solid android:color="#C04A5E" /></shape></item>
+                <item><shape><solid android:color="#14FFFFFF" /></shape></item>
+                <item android:gravity="right|fill_vertical" android:width="2dp"><shape><solid android:color="#FFF2F2F2" /></shape></item>
             </layer-list>
         </scale>
     </item>

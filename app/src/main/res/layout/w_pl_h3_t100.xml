@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One groove layer, added to the pads by the widget (as a stable view, so it keeps playing between refreshes). -->
+<ProgressBar xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:minWidth="10dp" android:maxWidth="400dp" android:minHeight="10dp" android:maxHeight="400dp"
+    android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+    android:indeterminateDrawable="@drawable/w_pl_h3_t100" />

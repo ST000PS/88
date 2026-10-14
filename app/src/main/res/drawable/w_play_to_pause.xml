@@ -2,8 +2,8 @@
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
     <aapt:attr name="android:drawable">
         <vector android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-            <path android:name="l" android:fillColor="#FFFFFFFF" android:pathData="M8,5L14,8.82L14,15.18L8,19Z" />
-            <path android:name="r" android:fillColor="#FFFFFFFF" android:pathData="M13.5,8.5L19,12L19,12L13.5,15.5Z" />
+            <path android:name="l" android:fillColor="#FF0A0A0A" android:pathData="M8,5L14,8.82L14,15.18L8,19Z" />
+            <path android:name="r" android:fillColor="#FF0A0A0A" android:pathData="M13.5,8.5L19,12L19,12L13.5,15.5Z" />
         </vector>
     </aapt:attr>
     <target android:name="l">

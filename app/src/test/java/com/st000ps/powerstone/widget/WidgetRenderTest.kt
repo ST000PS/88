@@ -101,7 +101,7 @@ class WidgetRenderTest {
         val dir = WidgetStore.dir(ctx)
         val art = android.graphics.BitmapFactory.decodeFile(File(dir, s.artName!!).path)
         val label = s.labelName?.let { android.graphics.BitmapFactory.decodeFile(File(dir, it).path) }
-        listOf(R.id.w_art, R.id.w_cover, R.id.w_lcd_art).forEach { (v.findViewById<View>(it) as? ImageView)?.setImageBitmap(art) }
+        listOf(R.id.w_art, R.id.w_cover, R.id.w_hero_art).forEach { (v.findViewById<View>(it) as? ImageView)?.setImageBitmap(art) }
         (v.findViewById<View>(R.id.w_label) as? ImageView)?.setImageBitmap(label)
     }
 

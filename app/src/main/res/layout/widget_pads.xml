@@ -1,55 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The hero: a sampler. 4x4 pads finger-drumming a boom-bap pattern at about the track's tempo, beside a
-     display (Silkscreen) with the cover, SEQ (track), BPM, release, state and time. Fixed size so the
-     pads stay square. -->
+<!-- The hero: the cover, big, beside the pads. The pads are matte rubber; while playing, the widget stacks
+     four groove layers on them (kick, snare, hats, sample chops), picked to match where this track's own
+     hits land in the bar and timed to its tempo. Fixed size so both stay square. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_sampler" android:layout_width="wrap_content" android:layout_height="wrap_content"
     android:orientation="horizontal">
-    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/w_panel" android:padding="6dp">
-        <ProgressBar android:id="@+id/w_pads_70" android:layout_width="128dp" android:layout_height="128dp"
-            android:minWidth="128dp" android:maxWidth="128dp" android:minHeight="128dp" android:maxHeight="128dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_pads_t70" android:visibility="gone" />
-        <ProgressBar android:id="@+id/w_pads_80" android:layout_width="128dp" android:layout_height="128dp"
-            android:minWidth="128dp" android:maxWidth="128dp" android:minHeight="128dp" android:maxHeight="128dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_pads_t80" android:visibility="gone" />
-        <ProgressBar android:id="@+id/w_pads_90" android:layout_width="128dp" android:layout_height="128dp"
-            android:minWidth="128dp" android:maxWidth="128dp" android:minHeight="128dp" android:maxHeight="128dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_pads_t90" android:visibility="gone" />
-        <ProgressBar android:id="@+id/w_pads_100" android:layout_width="128dp" android:layout_height="128dp"
-            android:minWidth="128dp" android:maxWidth="128dp" android:minHeight="128dp" android:maxHeight="128dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_pads_t100" android:visibility="gone" />
-        <ProgressBar android:id="@+id/w_pads_115" android:layout_width="128dp" android:layout_height="128dp"
-            android:minWidth="128dp" android:maxWidth="128dp" android:minHeight="128dp" android:maxHeight="128dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_pads_t115" android:visibility="gone" />
-        <ProgressBar android:id="@+id/w_pads_135" android:layout_width="128dp" android:layout_height="128dp"
-            android:minWidth="128dp" android:maxWidth="128dp" android:minHeight="128dp" android:maxHeight="128dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
-            android:indeterminateDrawable="@drawable/w_pads_t135" android:visibility="gone" />
-        <ImageView android:id="@+id/w_pads_rest" android:layout_width="128dp" android:layout_height="128dp"
+    <ImageView android:id="@+id/w_hero_art" android:layout_width="132dp" android:layout_height="132dp"
+        android:background="@drawable/w_thumb_frame" android:padding="1dp" android:scaleType="centerCrop" android:src="@mipmap/ic_launcher"
+        android:contentDescription="@null" />
+    <FrameLayout android:layout_width="132dp" android:layout_height="132dp" android:layout_marginStart="8dp"
+        android:background="@drawable/w_panel" android:padding="5dp">
+        <ImageView android:id="@+id/w_pads_rest" android:layout_width="122dp" android:layout_height="122dp"
             android:src="@drawable/w_pads_rest" android:contentDescription="@null" android:visibility="gone" />
-        <ImageView android:id="@+id/w_pads_off" android:layout_width="128dp" android:layout_height="128dp"
+        <ImageView android:id="@+id/w_pads_off" android:layout_width="122dp" android:layout_height="122dp"
             android:src="@drawable/w_pads_off" android:contentDescription="@null" />
+        <FrameLayout android:id="@+id/w_pl_k" android:layout_width="122dp" android:layout_height="122dp" />
+        <FrameLayout android:id="@+id/w_pl_s" android:layout_width="122dp" android:layout_height="122dp" />
+        <FrameLayout android:id="@+id/w_pl_h" android:layout_width="122dp" android:layout_height="122dp" />
+        <FrameLayout android:id="@+id/w_pl_c" android:layout_width="122dp" android:layout_height="122dp" />
     </FrameLayout>
-    <LinearLayout android:id="@+id/w_lcd" android:layout_width="124dp" android:layout_height="match_parent" android:layout_marginStart="8dp"
-        android:background="@drawable/w_panel" android:orientation="vertical" android:padding="9dp">
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-            <ImageView android:id="@+id/w_lcd_art" android:layout_width="46dp" android:layout_height="46dp"
-                android:background="@drawable/w_thumb_frame" android:padding="1dp" android:scaleType="centerCrop" android:src="@mipmap/ic_launcher"
-                android:contentDescription="@null" />
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-                android:layout_marginStart="8dp" android:orientation="vertical">
-                <ImageView android:id="@+id/w_lcd_seq" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" />
-                <ImageView android:id="@+id/w_lcd_bpm" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginTop="5dp"/>
-                <ImageView android:id="@+id/w_lcd_rel" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginTop="5dp"/>
-            </LinearLayout>
-        </LinearLayout>
-        <FrameLayout android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="9dp" android:background="#FF1A1A1A" />
-        <ImageView android:id="@+id/w_lcd_next_k" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginTop="8dp"/>
-        <ImageView android:id="@+id/w_lcd_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginTop="4dp"/>
-        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-            <ImageView android:id="@+id/w_lcd_state" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-                android:scaleType="fitStart" android:contentDescription="@null" />
-            <Chronometer android:id="@+id/w_lcd_time" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:fontFamily="monospace" android:textColor="#FF8A8A8A" android:textSize="10sp" />
-        </LinearLayout>
-    </LinearLayout>
 </LinearLayout>

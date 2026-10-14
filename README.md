@@ -36,34 +36,37 @@ headset controls)
 - Audio quality: Auto (by connection), 320, 160 or 64 kbps.
 
 **Home-screen widget, sleep timer, resume**
-- **Widget**, in knxwledge.com's own look:
+- **Widget**, in knxwledge.com's own look, monochrome:
   - **Look:** near-black and square, with 1px `#222` hairlines and a film-grain layer. Text is in
     Silkscreen, the pixel font his site uses (bundled under the SIL Open Font License, see
-    `assets/fonts/Silkscreen-OFL.txt`), with small Japanese sub-labels. The live dot pulses like the
-    site's.
+    `assets/fonts/Silkscreen-OFL.txt`), with small Japanese sub-labels. Black, greys and white only.
   - **Sizes:**
-    - **4×1 row:** cover, title, the site's thin-bar visualizer, keys and a progress hairline.
-    - **Card:** adds the header, track time and the sample strip.
-    - **Big card:** a hero, then the title, the sample strip and five keys. Wide widgets get a
-      bigger hero.
-  - **The hero:**
-    - **Sampler pads (default):** a 4×4 MPC-style grid finger-drumming a two-bar boom-bap
-      pattern at about the track's BPM.
-    - **Display:** beside the pads, it shows the cover, SEQ (track), BPM, release, next track,
-      state and time.
-    - **Other heroes:** a spinning record, or the plain cover.
-  - **The sample strip:** the track drawn as a sliced waveform, with transients at its tempo and
-    chop markers (stylised, and the same picture every time for a track). A rose playhead follows
-    progress, and a 16-step sequencer below walks the pads' groove once a bar.
-  - **Motion:** it only moves while playing. Paused, everything rests; closed, it shows the last
-    track and today's listening.
+    - **4×1 row:** a full-height cover, title, the site's thin-bar visualizer, keys and a progress
+      hairline.
+    - **Card:** a big cover beside the header, title and time; the sample strip; keys.
+    - **Big card:** the cover, big, beside a 4×4 pad grid; then the title, the sample strip and
+      five keys. Wide widgets get a bigger cover and pads.
+  - **Pads that play the track's groove:**
+    - The first time a track plays, the app decodes about 16 s of it (downloaded tracks always;
+      streams only on unmetered networks).
+    - It splits the audio into low, mid and high bands and folds their onsets onto the bar at the
+      track's BPM, to find where its kicks, snares and hats land.
+    - It then picks the nearest patterns from a built-in library (`audio/Groove.kt`), and
+      remembers them per track.
+    - The pads stack four looping layers (kick, snare, hats, sample chops) at about that tempo.
+      Lit pads glow from beneath, bloom onto the gutter and press down on each hit.
+    - The layers are stable views, so the once-a-second refresh doesn't restart them.
+  - **The sample strip:** the track drawn as a sliced waveform (stylised, the same picture every
+    time for a track) with a white playhead on progress. Below it, a 16-step sequencer marks the
+    groove's kicks and snares, with a playhead walking each bar.
+  - **Motion:** it only moves while playing. Paused, the pads rest; closed, everything is unlit
+    and it shows the last track and today's listening.
   - **Android 12+:** play/pause morph and the heart pops on tap.
   - **Per-widget settings** (long-press → settings): pads, record or cover; motion or still.
   - **How it's drawn:** widgets can only use system fonts, so the app renders the pixel text and
-    waveforms to small cached images. They reach the launcher as content:// links, like the
-    covers, so the once-a-second refresh (only with the screen on and music playing) stays tiny.
+    waveforms to small cached images. They reach the launcher as content:// links, like the covers.
   - `WidgetRenderTest` draws every state to `app/build/widget-shots/`, and CI uploads them as
-    **widget-renders**.
+    **widget-renders**. `GrooveTest` checks the groove detection on synthetic beats.
 - **Sleep timer** (moon button on the player): 15–90 minutes or the end of the current track. It
   pauses with the vinyl stop.
 - **Up next**: the queue on the player screen. Tap a track to jump to it.

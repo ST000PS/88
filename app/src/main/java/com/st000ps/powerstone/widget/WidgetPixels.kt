@@ -25,9 +25,8 @@ object WidgetPixels {
         BODY(8f, 0xFF8A8A8A.toInt(), false),
         DIM(8f, 0xFF4A4A4A.toInt(), false),
         BRIGHT(8f, 0xFFF2F2F2.toInt(), false),
-        LIVE(8f, 0xFFC04A5E.toInt(), false),
-        BIG(16f, 0xFFF2F2F2.toInt(), false),
-        BIG_LIVE(16f, 0xFFC04A5E.toInt(), false),
+        /** What's live right now: plain white (the widget is monochrome). */
+        LIVE(8f, 0xFFFFFFFF.toInt(), false),
     }
 
     @Volatile private var regular: Typeface? = null

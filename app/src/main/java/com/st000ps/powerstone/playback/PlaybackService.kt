@@ -30,6 +30,8 @@ import kotlin.math.min
 import kotlin.math.sin
 import com.st000ps.powerstone.app
 import com.st000ps.powerstone.audio.DjEqProcessor
+import com.st000ps.powerstone.audio.Groove
+import com.st000ps.powerstone.audio.GrooveAnalyzer
 import com.st000ps.powerstone.audio.VinylPlayer
 import com.st000ps.powerstone.data.PlayEvent
 import com.st000ps.powerstone.data.SavedSession
@@ -53,6 +55,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
  * Runs the player in the background so audio keeps going with the screen off,
@@ -312,6 +315,38 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    private val grooveJobs = HashSet<String>()
+
+    /**
+     * Works out a track's groove for the widget's pads, once per track: decodes ~16 s of it and finds
+     * where its kicks, snares and hats land. Downloaded tracks always; streams only on unmetered
+     * networks (it reads the audio a second time).
+     */
+    private fun listenForGroove(id: String, item: MediaItem, bpm: Int?) {
+        if (bpm == null || id in grooveJobs || WidgetStore.groove(this, id) != null) return
+        val uri = item.localConfiguration?.uri ?: return
+        val local = uri.scheme == "file" || uri.scheme == "content"
+        val unmetered = getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
+        if (!local && !unmetered) return
+        grooveJobs += id
+        val duration = exo.duration.takeIf { it != C.TIME_UNSET } ?: 0L
+        scope.launch {
+            val groove = withContext(Dispatchers.IO) {
+                val headers = if (local) emptyMap() else {
+                    val url = uri.toString().toHttpUrlOrNull()
+                    val cookie = url?.let { u -> app.api.http.cookieJar.loadForRequest(u).joinToString("; ") { "${it.name}=${it.value}" } }
+                    if (cookie.isNullOrEmpty()) emptyMap() else mapOf("Cookie" to cookie)
+                }
+                GrooveAnalyzer.analyze(this@PlaybackService, uri, headers, duration, bpm)
+            }
+            grooveJobs -= id
+            if (groove != null) {
+                WidgetStore.setGroove(this@PlaybackService, id, groove)
+                pushWidget()
+            }
+        }
+    }
+
     /** Minutes listened today, for the widget's resting line. */
     private fun refreshToday() {
         scope.launch {
@@ -370,6 +405,7 @@ class PlaybackService : MediaSessionService() {
             release = md.albumTitle?.toString() ?: "",
             trackNo = found?.second?.n,
             trackKey = id ?: "",
+            groove = id?.let { WidgetStore.groove(this, it) } ?: Groove.DEFAULT,
             tune = tune,
             todayMinutes = todayMinutes,
             hasTrack = item != null,
@@ -382,6 +418,7 @@ class PlaybackService : MediaSessionService() {
             sleepAt = sleep.endAt,
             sleepEndOfTrack = sleep.endOfTrack,
         )
+        if (id != null && found != null) listenForGroove(id, item, found.second.bpm)
         if (next.sameAs(lastWidget)) return // only redraw when something visible changed
         lastWidget = next
         PlayerWidget.update(this, next)
