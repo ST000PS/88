@@ -16,6 +16,8 @@ public sealed partial class Shell : ObservableObject
     public PlaylistStore Playlists { get; }
     public ListeningHistory History { get; }
     public PlayerViewModel Player { get; }
+    public OfflineStore Offline { get; }
+    public Services.VideoCache Videos { get; }
     public Dispatcher Ui { get; } = Application.Current.Dispatcher;
 
     [ObservableProperty] private List<Release> _releases = new();
@@ -25,6 +27,8 @@ public sealed partial class Shell : ObservableObject
     [ObservableProperty] private bool _loading = true;
     [ObservableProperty] private string? _error;
     [ObservableProperty] private bool _hasPassword;
+    [ObservableProperty] private string? _downloadStatus;
+    [ObservableProperty] private bool _isOffline;
 
     public ObservableCollection<Playlist> PlaylistList { get; } = new();
     public List<string> Favs { get; private set; } = new();
@@ -40,7 +44,11 @@ public sealed partial class Shell : ObservableObject
         Settings = Settings.Load(dataDir);
         Playlists = new PlaylistStore(Api, Settings, dataDir);
         History = new ListeningHistory(dataDir);
+        Offline = new OfflineStore(dataDir, (url, ct) => Api.DownloadAsync(url, null, ct));
+        Videos = new Services.VideoCache(Api, dataDir);
+        if (Settings.LastMe != null) Me = Settings.LastMe; // known account even when starting offline
         Player = new PlayerViewModel(this);
+        Offline.Changed += () => Ui.BeginInvoke(() => { Page?.Refresh(); OnPropertyChanged(nameof(OfflineSummary)); });
         Playlists.Changed += () => Ui.BeginInvoke(SyncPlaylists);
         SyncPlaylists();
         _toastTimer.Tick += (_, _) => { Toast = null; _toastTimer.Stop(); };
@@ -71,12 +79,51 @@ public sealed partial class Shell : ObservableObject
 
     public async Task RefreshAccountAsync()
     {
-        Me = await Api.MeAsync();
+        var me = await Api.TryMeAsync();
+        IsOffline = me == null;
+        if (me != null)
+        {
+            Me = me;
+            Settings.LastMe = me.SignedIn ? me : null;
+            Settings.Save();
+            // Only a real answer from the site may lock or delete downloads — never a network failure.
+            Offline.AccountChecked(me);
+            if (!me.IsSubscriber) Videos.Clear();
+        }
         try { Favs = Me.SignedIn ? (await Api.FavsAsync()).Select(f => f.Id).ToList() : new(); } catch { }
         HasPassword = Me.SignedIn && await Api.HasPasswordAsync();
         await Playlists.LoadAsync(Me.SignedIn);
         Page?.Refresh();
     }
+
+    // ---------- downloads ----------
+
+    private CancellationTokenSource? _downloadCts;
+
+    public string OfflineSummary => Offline.Count == 0 ? "No downloads yet."
+        : $"{Offline.Count} tracks · {Offline.TotalBytes / 1_048_576.0:0} MB" + (Offline.Usable ? "" : " · locked until your subscription is confirmed online");
+
+    /// <summary>Downloads tracks for offline listening (subscribers), one at a time, with status in the rail.</summary>
+    public async Task DownloadAsync(IReadOnlyList<QueueItem> items, string what)
+    {
+        if (!Me.IsSubscriber) { ShowToast("Downloads are for subscribers"); return; }
+        if (_downloadCts != null) { ShowToast("A download is already running"); return; }
+        var cts = _downloadCts = new CancellationTokenSource();
+        try
+        {
+            var q = Player.DownloadQuality();
+            var progress = new Progress<(int Done, int Total)>(p => DownloadStatus = p.Total == 0 ? null : $"↓ {what} · {p.Done}/{p.Total}");
+            var n = await Offline.DownloadAsync(items, i => i.Track.StreamPath(true, q), progress, cts.Token);
+            ShowToast(n == 0 ? $"{what} is already downloaded" : $"Downloaded {what} ({n} tracks)");
+        }
+        catch (OperationCanceledException) { ShowToast("Download stopped"); }
+        catch (Exception e) { ShowToast("Download failed: " + e.Message); }
+        finally { _downloadCts = null; DownloadStatus = null; OnPropertyChanged(nameof(OfflineSummary)); Page?.Refresh(); }
+    }
+
+    [RelayCommand] private void CancelDownload() => _downloadCts?.Cancel();
+
+    public void RemoveDownloads(IEnumerable<QueueItem> items) { Offline.Remove(items.Select(i => i.Id)); ShowToast("Download removed"); }
 
     public void Shutdown()
     {

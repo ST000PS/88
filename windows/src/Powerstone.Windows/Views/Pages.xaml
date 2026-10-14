@@ -189,7 +189,9 @@
                         <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
                         <Button Content="SHUFFLE" Command="{Binding ShuffleCommand}" Margin="0,0,8,0" />
                         <Button Content="COPY LINK" Command="{Binding ShareCommand}" Margin="0,0,8,0" />
-                        <Button Content="BANDCAMP" Command="{Binding BandcampCommand}" Visibility="{Binding Release.Bandcamp, Converter={StaticResource NullVis}}" />
+                        <Button Content="BANDCAMP" Command="{Binding BandcampCommand}" Visibility="{Binding Release.Bandcamp, Converter={StaticResource NullVis}}" Margin="0,0,8,0" />
+                        <Button Content="{Binding DownloadLabel}" Command="{Binding DownloadCommand}" ToolTip="Keep this release on this PC for listening offline"
+                                Visibility="{Binding CanDownload, Converter={StaticResource Vis}}" />
                     </WrapPanel>
                     <TextBlock Text="{Binding PreviewNote}" Style="{StaticResource DimText}" Margin="0,8,0,0" Visibility="{Binding PreviewNote, Converter={StaticResource NullVis}}" />
                     <ItemsControl ItemsSource="{Binding Tags}" ItemsPanel="{StaticResource Row}" Margin="0,8,0,0">
@@ -267,6 +269,7 @@
                     <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
                     <Button Content="SHUFFLE PLAY" Command="{Binding ShuffleCommand}" Margin="0,0,8,0" />
                     <Button Content="SHARE (COPY LINK)" Command="{Binding ShareCommand}" Margin="0,0,8,0" />
+                    <Button Content="↓ DOWNLOAD" Command="{Binding DownloadCommand}" Margin="0,0,8,0" Visibility="{Binding CanDownload, Converter={StaticResource Vis}}" />
                     <Button Content="DELETE" Command="{Binding DeleteCommand}" Foreground="{StaticResource Rose}" />
                 </WrapPanel>
                 <TextBlock Text="Right-click a track to move or remove it. Add songs from any track's menu." Style="{StaticResource DimText}" Margin="0,8,0,0" />
@@ -371,8 +374,11 @@
             <Grid>
                 <!-- favourites -->
                 <DockPanel Visibility="{Binding IsFavs, Converter={StaticResource Vis}}">
-                    <Button DockPanel.Dock="Top" Style="{StaticResource Primary}" Content="▶ PLAY FAVOURITES" Command="{Binding PlayFavsCommand}" HorizontalAlignment="Left" Margin="0,0,0,8"
-                            Visibility="{Binding FavRows.Count, Converter={StaticResource NullVis}}" />
+                    <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button Style="{StaticResource Primary}" Content="▶ PLAY FAVOURITES" Command="{Binding PlayFavsCommand}" Margin="0,0,8,0"
+                                Visibility="{Binding FavRows.Count, Converter={StaticResource NullVis}}" />
+                        <Button Content="↓ DOWNLOAD FAVOURITES" Command="{Binding DownloadFavsCommand}" Visibility="{Binding CanDownload, Converter={StaticResource Vis}}" />
+                    </WrapPanel>
                     <ListBox ItemsSource="{Binding FavRows}" />
                 </DockPanel>
                 <!-- history -->
@@ -499,6 +505,12 @@
                 <TextBlock Text="Working…" Style="{StaticResource DimText}" Margin="0,10,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{Binding Message}" Foreground="{StaticResource Rose}" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="{Binding Message, Converter={StaticResource NullVis}}" />
 
+                <TextBlock Text="DOWNLOADS" Style="{StaticResource Label}" Margin="0,28,0,6" />
+                <TextBlock Text="Subscribers can download releases, playlists and favourites (↓ buttons) to listen offline. They play offline for 30 days after your subscription was last confirmed, and are removed if you sign out or the subscription ends."
+                           Style="{StaticResource DimText}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding OfflineSummary}" Margin="0,6,0,0" />
+                <Button Content="REMOVE ALL DOWNLOADS" Command="{Binding RemoveAllDownloadsCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" />
+
                 <TextBlock Text="AUDIO QUALITY" Style="{StaticResource Label}" Margin="0,28,0,6" />
                 <WrapPanel>
                     <Button Style="{StaticResource ChipButton}" Content="AUTO" Command="{Binding SetQualityCommand}" CommandParameter="Auto">
@@ -573,6 +585,30 @@
                     </Button>
                 </WrapPanel>
 
+                <TextBlock Text="CROSSFADE" Style="{StaticResource Label}" Margin="0,22,0,6" />
+                <TextBlock Text="Blends one track into the next in shuffles and playlists. Albums stay gapless — many of these tapes run track into track."
+                           Style="{StaticResource DimText}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <WrapPanel>
+                    <Button Style="{StaticResource ChipButton}" Content="OFF" Command="{Binding SetCrossfadeCommand}" CommandParameter="0">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="0" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="2 S" Command="{Binding SetCrossfadeCommand}" CommandParameter="2">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="2" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="4 S" Command="{Binding SetCrossfadeCommand}" CommandParameter="4">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="4" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="6 S" Command="{Binding SetCrossfadeCommand}" CommandParameter="6">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="6" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="8 S" Command="{Binding SetCrossfadeCommand}" CommandParameter="8">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="8" /></MultiBinding></Button.Tag>
+                    </Button>
+                </WrapPanel>
+
+                <TextBlock Text="MUSIC VIDEOS" Style="{StaticResource Label}" Margin="0,22,0,6" />
+                <CheckBox Content="Show the video for tracks that have one (subscribers) in Now playing" IsChecked="{Binding VideoOn}" />
+
                 <TextBlock Text="VISUALIZER" Style="{StaticResource Label}" Margin="0,22,0,6" />
                 <CheckBox Content="Analyse the audio for the visualizer" IsChecked="{Binding VisualizerOn}" />
 
@@ -592,9 +628,13 @@
             </Grid.ColumnDefinitions>
             <StackPanel>
                 <Viewbox Stretch="Uniform" MaxHeight="440" HorizontalAlignment="Left">
-                    <Border Width="440" Height="440" Background="{StaticResource Panel}">
-                        <Image Source="{Binding Player.Cover, Converter={StaticResource ImgBig}}" Stretch="UniformToFill" />
-                    </Border>
+                    <Grid Width="440" Height="440">
+                        <Border Background="{StaticResource Panel}">
+                            <Image Source="{Binding Player.Cover, Converter={StaticResource ImgBig}}" Stretch="UniformToFill" />
+                        </Border>
+                        <!-- Music video (subscribers), muted and locked to the audio; covers the art once loaded -->
+                        <c:SyncedVideo Source="{Binding Player.VideoPath}" Playing="{Binding Player.IsPlaying}" Position="{Binding Player.Position}" />
+                    </Grid>
                 </Viewbox>
                 <c:Visualizer Height="80" Margin="0,10,0,0" Source="{Binding Player.Engine.Spectrum}" IsActive="{Binding Player.IsPlaying}" />
                 <TextBlock Text="{Binding Player.Title}" Style="{StaticResource Heading}" Margin="0,12,0,0" />

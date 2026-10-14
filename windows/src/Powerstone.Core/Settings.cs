@@ -79,6 +79,11 @@ public sealed class Settings
     public SessionSnapshot? LastSession { get; set; }
     public WindowPlacement? Window { get; set; }
     public bool MiniOnTop { get; set; } = true;
+    /// <summary>Crossfade in seconds between tracks in shuffles and playlists (albums stay gapless); 0 = off.</summary>
+    public int CrossfadeSeconds { get; set; }
+    public bool VideoOn { get; set; } = true;
+    /// <summary>Last successful /api/me, so the app knows the account when it starts offline.</summary>
+    public Me? LastMe { get; set; }
     public double? MiniLeft { get; set; }
     public double? MiniTop { get; set; }
 

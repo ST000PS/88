@@ -130,7 +130,7 @@ public class AudioTests
         var second = new Sine(440, 1000);
         seq.SetTrack(new Sine(440, 1000));
         var handedOut = 0;
-        seq.NextReady = () => handedOut++ == 0 ? second : null;
+        seq.NextReady = () => handedOut++ == 0 ? new SequencerTrack(second) : null;
         var ended = new List<bool>();
         seq.TrackEnded += ended.Add;
         var buf = new float[3000 * 2];
@@ -158,7 +158,7 @@ public class SequencerEdgeTests
     {
         var seq = new TrackSequencer(TrackSequencer.StandardFormat);
         seq.SetTrack(new Sine(440, 10));
-        seq.NextReady = () => new Sine(440, 0); // always hands back an already-finished track
+        seq.NextReady = () => new SequencerTrack(new Sine(440, 0)); // always hands back an already-finished track
         var buf = new float[1000];
         Assert.Equal(buf.Length, seq.Read(buf, 0, buf.Length));
         Assert.Equal(buf.Length, seq.Read(buf, 0, buf.Length)); // and stays silent afterwards
@@ -200,5 +200,82 @@ public class OutputBufferTests
         var seq = new TrackSequencer(TrackSequencer.StandardFormat);
         seq.SetTrack(new Sine(440, 100));
         Assert.Equal(4000, ReadThroughWaveBuffer(seq, 4000)); // track ends early: rest must be zeros, not garbage
+    }
+}
+
+/// <summary>Constant-level stereo source of a known length.</summary>
+internal sealed class Dc(float level, int frames) : ISampleProvider
+{
+    private int _i;
+    public WaveFormat WaveFormat { get; } = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+    public int Read(float[] buffer, int offset, int count)
+    {
+        var n = 0;
+        while (n + 2 <= count && _i < frames) { buffer[offset + n] = level; buffer[offset + n + 1] = level; n += 2; _i++; }
+        return n;
+    }
+}
+
+public class CrossfadeTests
+{
+    [Fact]
+    public void CrossfadeOverlapsTheTracksWithEqualPowerAndReleasesTheOldOne()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat) { CrossfadeFrames = 1000 };
+        var a = new Dc(0.5f, 5000);
+        var b = new Dc(0.5f, 5000);
+        seq.SetTrack(a, 5000);
+        var handed = 0;
+        seq.NextReady = () => handed++ == 0 ? new SequencerTrack(b, 5000) : null;
+        var ended = new List<bool>();
+        var released = new List<ISampleProvider>();
+        seq.TrackEnded += ended.Add;
+        seq.Released += released.Add;
+
+        var outp = new float[12000 * 2];
+        for (var o = 0; o < outp.Length; o += 512) seq.Read(outp, o, Math.Min(512, outp.Length - o));
+        float At(int frame) => outp[frame * 2];
+
+        Assert.Equal(0.5f, At(3999));                     // A alone until 1000 frames before its end
+        Assert.InRange(At(4500), 0.69f, 0.71f);           // middle of the fade: 0.5·cos45° + 0.5·sin45° ≈ 0.707
+        Assert.Equal(0.5f, At(5500));                     // B alone
+        Assert.Equal(0f, At(9000 + 10));                  // A (4000 solo) + fade (1000) + B's last 4000 = 9000 frames
+        Assert.Equal(new[] { true, false }, ended);       // switched once (at the fade), then ran out
+        Assert.Same(a, released[0]);                      // A released once the fade finished
+        Assert.Contains(b, released);
+    }
+
+    [Fact]
+    public void WithoutCrossfadeItIsGaplessAndReleasesEachTrack()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat);
+        var a = new Dc(0.25f, 1000);
+        var b = new Dc(0.75f, 1000);
+        seq.SetTrack(a, 1000);
+        var handed = 0;
+        seq.NextReady = () => handed++ == 0 ? new SequencerTrack(b, 1000) : null;
+        var released = new List<ISampleProvider>();
+        seq.Released += released.Add;
+        var outp = new float[3000 * 2];
+        seq.Read(outp, 0, outp.Length);
+        Assert.Equal(0.25f, outp[999 * 2]);
+        Assert.Equal(0.75f, outp[1000 * 2]);              // no gap, no overlap
+        Assert.Equal(new ISampleProvider[] { a, b }, released);
+    }
+
+    [Fact]
+    public void ReplacingTheTrackMidFadeReleasesBoth()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat) { CrossfadeFrames = 2000 };
+        var a = new Dc(0.5f, 3000);
+        var b = new Dc(0.5f, 3000);
+        seq.SetTrack(a, 3000);
+        seq.NextReady = () => new SequencerTrack(b, 3000);
+        var released = new List<ISampleProvider>();
+        seq.Released += released.Add;
+        seq.Read(new float[1500 * 2], 0, 1500 * 2); // now mid-fade
+        seq.SetTrack(new Dc(0.1f, 100), 100);
+        Assert.Contains(a, released);
+        Assert.Contains(b, released);
     }
 }

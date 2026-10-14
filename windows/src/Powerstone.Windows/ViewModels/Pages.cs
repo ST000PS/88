@@ -43,6 +43,7 @@ public sealed partial class TrackRowViewModel : ObservableObject
     public string Duration => Format.Duration(Item.Track.Duration);
     public string? Thumb => Item.Release.Thumb ?? Item.Release.Cover;
     public bool HasVideo => Item.Track.Video != null;
+    public bool IsOffline => _shell.Offline.Has(Item);
     public bool SignedIn => _shell.Me.SignedIn;
     public string Meta => string.Join(" · ", new[]
     {
@@ -50,6 +51,7 @@ public sealed partial class TrackRowViewModel : ObservableObject
         Item.Track.Bpm is { } b ? $"{b} BPM" : null,
         Item.Track.Key is { Length: > 0 } k ? $"KEY {k}" : null,
         HasVideo ? "▣ VIDEO" : null,
+        IsOffline ? "↓ DOWNLOADED" : null,
     }.Where(x => x != null));
 
     public TrackRowViewModel(Shell shell, QueueItem item, int number, bool showAlbum, Action play, IReadOnlyList<MenuEntry>? extra)
@@ -66,6 +68,7 @@ public sealed partial class TrackRowViewModel : ObservableObject
         IsCurrent = _shell.Player.Current?.Id == Item.Id;
         OnPropertyChanged(nameof(SignedIn));
         OnPropertyChanged(nameof(PlaylistMenu));
+        OnPropertyChanged(nameof(Meta));
     }
 
     /// <summary>"Add to playlist" entries, built when the menu opens so new playlists show up.</summary>
@@ -147,7 +150,18 @@ public sealed partial class ReleaseViewModel : PageBase
         Rows = r.Tracks.Select((t, i) => Row(new QueueItem(r, t), t.N, false, () => Player.PlayRelease(r, i))).ToList();
     }
 
-    public override void Refresh() => RefreshRows(Rows);
+    public override void Refresh() { RefreshRows(Rows); OnPropertyChanged(nameof(DownloadLabel)); OnPropertyChanged(nameof(CanDownload)); }
+
+    private List<QueueItem> Items => Release.Tracks.Select(t => new QueueItem(Release, t)).ToList();
+    public bool CanDownload => Shell.Me.IsSubscriber;
+    public string DownloadLabel => Items.All(Shell.Offline.Has) ? "↓ DOWNLOADED · REMOVE" : "↓ DOWNLOAD";
+
+    [RelayCommand]
+    private async Task Download()
+    {
+        if (Items.All(Shell.Offline.Has)) Shell.RemoveDownloads(Items);
+        else await Shell.DownloadAsync(Items, Release.Title);
+    }
 
     [RelayCommand] private void Play() => Player.PlayRelease(Release);
     [RelayCommand] private void Shuffle() => Player.Shuffled(Release.Tracks.Select(t => new QueueItem(Release, t)));
@@ -204,6 +218,7 @@ public sealed partial class PlaylistViewModel : PageBase
         if (pl == null) return;
         Name = pl.Name;
         _items = Shell.Resolve(pl.Tracks);
+        OnPropertyChanged(nameof(CanDownload));
         Info = $"{_items.Count} trax · {Format.Duration(_items.Sum(i => i.Track.Duration))}";
         Rows = _items.Select((it, i) => Row(it, i + 1, true, () => Player.Play(_items, i), new[]
         {
@@ -216,6 +231,8 @@ public sealed partial class PlaylistViewModel : PageBase
     [RelayCommand] private void Play() => Player.Play(_items, 0);
     [RelayCommand] private void Shuffle() => Player.Shuffled(_items);
     [RelayCommand] private void Rename() => Shell.Playlists.Rename(Id, Name);
+    public bool CanDownload => Shell.Me.IsSubscriber && _items.Count > 0;
+    [RelayCommand] private Task Download() => Shell.DownloadAsync(_items, Name);
 
     [RelayCommand]
     private void Delete()

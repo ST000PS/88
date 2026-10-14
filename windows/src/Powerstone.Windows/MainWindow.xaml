@@ -41,6 +41,12 @@
                         <TextBlock Text="88.8FM" FontSize="20" FontWeight="Bold" />
                     </StackPanel>
                     <TextBlock Text="{Binding TierText}" Style="{StaticResource DimText}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    <TextBlock Text="OFFLINE · playing downloads" Foreground="{StaticResource Rose}" FontSize="10" Margin="0,4,0,0"
+                               Visibility="{Binding IsOffline, Converter={StaticResource Vis}}" />
+                    <DockPanel Margin="0,6,0,0" Visibility="{Binding DownloadStatus, Converter={StaticResource NullVis}}">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Link}" Content="stop" Command="{Binding CancelDownloadCommand}" FontSize="10" />
+                        <TextBlock Text="{Binding DownloadStatus}" Foreground="{StaticResource Rose}" FontSize="10" />
+                    </DockPanel>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Top">
                     <Button Style="{StaticResource Nav}" Command="{Binding GoCatalogueCommand}" Content="Catalogue" />

@@ -31,6 +31,8 @@ public sealed partial class PlayerViewModel : ObservableObject
     [ObservableProperty] private double _duration;   // seconds
     [ObservableProperty] private bool _isFav;
     [ObservableProperty] private float _volume;
+    /// <summary>Cached music video for the current track (subscribers, videos on), or null.</summary>
+    [ObservableProperty] private string? _videoPath;
 
     public bool HasTrack => Current != null;
     public string Title => Current?.Track.Title ?? "88.8FM";
@@ -64,6 +66,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         {
             UrlFor = i => i.Track.StreamPath(_shell.Me.IsSubscriber, ResolvedQuality()),
             VinylSeconds = () => _shell.Settings.Vinyl.Seconds(),
+            LocalFileFor = i => _shell.Offline.PathFor(i.Id),
         };
         Engine.Gains.Apply(shell.Settings.Eq);
         Engine.Spectrum.Enabled = shell.Settings.VisualizerOn;
@@ -78,6 +81,35 @@ public sealed partial class PlayerViewModel : ObservableObject
         Engine.StateChanged += SyncState;
         _tick.Tick += (_, _) => OnTick();
         _tick.Start();
+    }
+
+    /// <summary>Quality for downloads: what's chosen, with Auto meaning the best.</summary>
+    public Quality DownloadQuality() => _shell.Settings.Quality == Quality.Auto ? Quality.High : _shell.Settings.Quality;
+
+    /// <summary>
+    /// Pre-load what plays next. Crossfade applies to shuffles and playlists only: albums stay gapless
+    /// (many of these tapes run track into track), and never when looping one track or stopping after it.
+    /// </summary>
+    private void PrepareNextTrack()
+    {
+        if (Current == null) return;
+        var next = _sleepAfterTrack ? null : _queue.PeekNext(auto: true);
+        var fade = next != null && _queue.Kind != QueueKind.Album && _queue.Repeat != RepeatMode.One && next.Id != Current.Id
+            ? _shell.Settings.CrossfadeSeconds : 0;
+        Engine.PrepareNext(next, fade);
+    }
+
+    /// <summary>Settings changed (crossfade, repeat…): re-plan the next transition.</summary>
+    public void Replan() => PrepareNextTrack();
+
+    /// <summary>Loads the music video for the current track when it has one (subscribers, videos on).</summary>
+    public async void LoadVideo()
+    {
+        VideoPath = null;
+        var item = Current;
+        if (item?.Track.Video == null || !_shell.Me.IsSubscriber || !_shell.Settings.VideoOn) return;
+        var path = await _shell.Videos.GetAsync(item);
+        if (ReferenceEquals(item, Current)) VideoPath = path;
     }
 
     /// <summary>Auto picks like the site: metered connection → 160k, otherwise 320k.</summary>
@@ -131,7 +163,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         OnPropertyChanged(nameof(SleepLabel)); OnPropertyChanged(nameof(SleepOn));
         _shell.ShowToast(_sleepAfterTrack ? "Sleep timer — stopping after this track" : _sleepAt != null ? $"Sleep timer — {what} min" : "Sleep timer off");
         // Stopping at the end of the track means no gapless hand-off into the next one.
-        if (Current != null) Engine.PrepareNext(_sleepAfterTrack ? null : _queue.PeekNext(auto: true));
+        PrepareNextTrack();
     }
 
     private void ClearSleep()
@@ -186,7 +218,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         Duration = Engine.Duration.TotalSeconds;
         SyncState();
         _media?.Update(item.Track.Title, item.Release.Artist, item.Release.Title, Api.Absolute(item.Release.Cover), Engine.IsPlaying, true);
-        Engine.PrepareNext(_sleepAfterTrack ? null : _queue.PeekNext(auto: true));
+        PrepareNextTrack();
+        LoadVideo();
         SaveSession();
     }
 
@@ -283,7 +316,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _shell.Settings.Repeat = _queue.Repeat;
         OnPropertyChanged(nameof(RepeatOne)); OnPropertyChanged(nameof(RepeatTape));
         _shell.ShowToast(_queue.Repeat switch { RepeatMode.One => "Repeat 1 — looping this track", RepeatMode.All => "Repeat tape — looping the whole queue", _ => "Repeat off" });
-        if (Current != null) Engine.PrepareNext(_queue.PeekNext(auto: true));
+        PrepareNextTrack();
     }
 
     [RelayCommand] private void ToggleRepeatOne() => SetRepeat(RepeatMode.One);

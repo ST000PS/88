@@ -15,7 +15,15 @@ namespace Powerstone.Windows.Services;
 /// </summary>
 public sealed class AudioEngine : IDisposable
 {
-    private sealed record Loaded(QueueItem Item, WaveStream Reader, ISampleProvider Provider);
+    private sealed class Loaded(QueueItem item, WaveStream reader, ISampleProvider provider)
+    {
+        public QueueItem Item { get; } = item;
+        public WaveStream Reader { get; } = reader;
+        public ISampleProvider Provider { get; } = provider;
+        public long Frames => (long)(Reader.TotalTime.TotalSeconds * TrackSequencer.StandardFormat.SampleRate);
+        /// <summary>Set once the sequencer will never read it again.</summary>
+        public bool Released;
+    }
 
     private readonly Api _api;
     private readonly Dispatcher _ui;
@@ -29,6 +37,7 @@ public sealed class AudioEngine : IDisposable
     private Loaded? _switchedTo; // set on the audio thread when it switched to _prepared
     private int _generation;
     private bool _braking;
+    private readonly Dictionary<ISampleProvider, Loaded> _live = new(ReferenceEqualityComparer.Instance);
 
     public EqGains Gains { get; } = new();
     public SpectrumSampleProvider Spectrum { get; }
@@ -43,6 +52,8 @@ public sealed class AudioEngine : IDisposable
     /// <summary>Resolves the stream URL for an item (quality / preview), set by the player.</summary>
     public Func<QueueItem, string?> UrlFor { get; set; } = _ => null;
     public Func<double> VinylSeconds { get; set; } = () => 0;
+    /// <summary>Downloaded copy of a track, if there is one (played instead of streaming).</summary>
+    public Func<QueueItem, string?> LocalFileFor { get; set; } = _ => null;
 
     public QueueItem? Current => _current?.Item;
     public bool IsLoading { get; private set; }
@@ -65,9 +76,10 @@ public sealed class AudioEngine : IDisposable
         {
             var p = Interlocked.Exchange(ref _prepared, null);
             if (p != null) Volatile.Write(ref _switchedTo, p);
-            return p?.Provider;
+            return p == null ? null : new SequencerTrack(p.Provider, p.Frames);
         };
         _sequencer.TrackEnded += continued => _ui.BeginInvoke(() => OnTrackEnded(continued));
+        _sequencer.Released += provider => _ui.BeginInvoke(() => OnReleased(provider));
         _turntable.Stopped += () => _ui.BeginInvoke(OnBrakeDone);
     }
 
@@ -113,9 +125,38 @@ public sealed class AudioEngine : IDisposable
 
     private async Task<Loaded?> LoadAsync(QueueItem item)
     {
-        var url = UrlFor(item) ?? throw new ApiException("This track has no audio.");
-        var bytes = await BytesFor(url);
-        return await Task.Run(() => Open(item, bytes));
+        byte[] bytes;
+        if (LocalFileFor(item) is { } local) bytes = await File.ReadAllBytesAsync(local); // downloaded: no network needed
+        else bytes = await BytesFor(UrlFor(item) ?? throw new ApiException("This track has no audio."));
+        var loaded = await Task.Run(() => Open(item, bytes));
+        _live[loaded.Provider] = loaded;
+        return loaded;
+    }
+
+    // ---------- disposal ----------
+    // A decoder may only be disposed once the sequencer has let go of it (after a crossfade, the old
+    // track is still being read for a few seconds) and it's no longer the engine's current track.
+
+    private void OnReleased(ISampleProvider provider)
+    {
+        if (!_live.TryGetValue(provider, out var l)) return;
+        l.Released = true;
+        DisposeIfDone(l);
+    }
+
+    private void DisposeIfDone(Loaded? l)
+    {
+        if (l == null || !l.Released || ReferenceEquals(l, _current) || ReferenceEquals(l, Volatile.Read(ref _prepared))) return;
+        _live.Remove(l.Provider);
+        l.Reader.Dispose();
+    }
+
+    /// <summary>A pre-loaded track that was never handed to the sequencer: it can go straight away.</summary>
+    private void Discard(Loaded? l)
+    {
+        if (l == null || ReferenceEquals(l, _current)) return;
+        _live.Remove(l.Provider);
+        l.Reader.Dispose();
     }
 
     /// <summary>
@@ -125,7 +166,7 @@ public sealed class AudioEngine : IDisposable
     public async Task PlayAsync(QueueItem item, bool autoplay = true, TimeSpan? at = null)
     {
         var gen = ++_generation;
-        Interlocked.Exchange(ref _prepared, null);
+        Discard(Interlocked.Exchange(ref _prepared, null));
         IsLoading = true; StateChanged?.Invoke();
         try
         {
@@ -135,9 +176,10 @@ public sealed class AudioEngine : IDisposable
             _turntable.Reset();
             _braking = false;
             if (at is { } t && t > TimeSpan.Zero && t < loaded.Reader.TotalTime) loaded.Reader.CurrentTime = t;
-            _sequencer.SetTrack(loaded.Provider);
             _current = loaded;
-            old?.Reader.Dispose();
+            _sequencer.SetTrack(loaded.Provider, loaded.Frames); // releases the old one
+            if (at is { } t2 && t2 > TimeSpan.Zero) _sequencer.Seeked((long)(loaded.Reader.CurrentTime.TotalSeconds * TrackSequencer.StandardFormat.SampleRate));
+            DisposeIfDone(old);
             var o = Output();
             if (autoplay && o.PlaybackState != PlaybackState.Playing) o.Play();
             else if (!autoplay && o.PlaybackState == PlaybackState.Playing) o.Pause();
@@ -153,16 +195,21 @@ public sealed class AudioEngine : IDisposable
         }
     }
 
-    /// <summary>Pre-loads what plays after the current track, for a gapless switch.</summary>
-    public async void PrepareNext(QueueItem? next)
+    /// <summary>
+    /// Pre-loads what plays after the current track, for a gapless switch — or a crossfade of
+    /// <paramref name="crossfadeSeconds"/> (0 = gapless).
+    /// </summary>
+    public async void PrepareNext(QueueItem? next, double crossfadeSeconds = 0)
     {
-        Interlocked.Exchange(ref _prepared, null);
+        Discard(Interlocked.Exchange(ref _prepared, null));
+        _sequencer.CrossfadeFrames = (int)(Math.Max(0, crossfadeSeconds) * TrackSequencer.StandardFormat.SampleRate);
         if (next == null) return;
         var gen = _generation;
         try
         {
             var loaded = await LoadAsync(next);
-            if (gen == _generation && loaded != null && _current != null) Interlocked.Exchange(ref _prepared, loaded);
+            if (gen == _generation && loaded != null && _current != null) Discard(Interlocked.Exchange(ref _prepared, loaded));
+            else Discard(loaded);
         }
         catch { /* it will simply load when it's due */ }
     }
@@ -174,7 +221,7 @@ public sealed class AudioEngine : IDisposable
         {
             var old = _current;
             _current = next;
-            old?.Reader.Dispose();
+            DisposeIfDone(old); // during a crossfade it's still playing; it goes when released
             Started?.Invoke(next.Item, true);
         }
         else
@@ -229,7 +276,8 @@ public sealed class AudioEngine : IDisposable
         if (_current != null)
         {
             try { _current.Reader.CurrentTime = TimeSpan.Zero; } catch { }
-            _sequencer.SetTrack(_current.Provider);
+            _current.Released = false;
+            _sequencer.SetTrack(_current.Provider, _current.Frames);
         }
         StateChanged?.Invoke();
     }
@@ -237,7 +285,12 @@ public sealed class AudioEngine : IDisposable
     public void Seek(TimeSpan t)
     {
         if (_current == null) return;
-        try { _current.Reader.CurrentTime = t < TimeSpan.Zero ? TimeSpan.Zero : t > Duration ? Duration : t; } catch { }
+        try
+        {
+            _current.Reader.CurrentTime = t < TimeSpan.Zero ? TimeSpan.Zero : t > Duration ? Duration : t;
+            _sequencer.Seeked((long)(_current.Reader.CurrentTime.TotalSeconds * TrackSequencer.StandardFormat.SampleRate));
+        }
+        catch { }
         if (!_braking) _turntable.Reset();
         StateChanged?.Invoke();
     }
@@ -245,11 +298,12 @@ public sealed class AudioEngine : IDisposable
     public void Stop()
     {
         _generation++;
-        Interlocked.Exchange(ref _prepared, null);
+        Discard(Interlocked.Exchange(ref _prepared, null));
+        var old = _current;
+        _current = null;
         _sequencer.SetTrack(null);
         _out?.Stop();
-        _current?.Reader.Dispose();
-        _current = null;
+        DisposeIfDone(old);
         _braking = false;
         StateChanged?.Invoke();
     }

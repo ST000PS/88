@@ -73,6 +73,9 @@ public sealed partial class MeViewModel : PageBase
         Message = !Shell.Me.SignedIn ? "Sign in to see your favourites." : items.Count == 0 ? "Tap the heart on any track to save it here." : null;
     }
 
+    public bool CanDownload => Shell.Me.IsSubscriber && Shell.Favs.Count > 0;
+    [RelayCommand] private Task DownloadFavs() => Shell.DownloadAsync(Shell.Favs.Select(id => Shell.Lookup(id)).OfType<QueueItem>().ToList(), "favourites");
+
     [RelayCommand] private void PlayFavs() { var items = Shell.Favs.Select(id => Shell.Lookup(id)).OfType<QueueItem>().ToList(); Player.Play(items, 0); }
 
     private async Task LoadAsync()
@@ -203,7 +206,7 @@ public sealed partial class AccountViewModel : PageBase
 
     public override void Refresh()
     {
-        foreach (var p in new[] { nameof(Me), nameof(SignedIn), nameof(Plan), nameof(MonthPrice), nameof(YearPrice), nameof(CanManage), nameof(PasswordNote), nameof(PasswordAction), nameof(QualityNote) }) OnPropertyChanged(p);
+        foreach (var p in new[] { nameof(OfflineSummary), nameof(Me), nameof(SignedIn), nameof(Plan), nameof(MonthPrice), nameof(YearPrice), nameof(CanManage), nameof(PasswordNote), nameof(PasswordAction), nameof(QualityNote) }) OnPropertyChanged(p);
     }
 
     private async Task Run(Func<Task> f)
@@ -231,6 +234,16 @@ public sealed partial class AccountViewModel : PageBase
     });
 
     [RelayCommand] private void StartPassword() => ChangingPassword = !ChangingPassword;
+
+    public string OfflineSummary => Shell.OfflineSummary;
+    [RelayCommand]
+    private void RemoveAllDownloads()
+    {
+        if (System.Windows.MessageBox.Show("Remove all downloaded tracks from this PC?", "88.8FM", System.Windows.MessageBoxButton.OKCancel) != System.Windows.MessageBoxResult.OK) return;
+        Shell.Offline.RemoveAll();
+        Shell.Videos.Clear();
+        Refresh();
+    }
     [RelayCommand] private Task SubscribeMonth() => Run(async () => Shell.OpenUrl(await Shell.Api.CheckoutUrlAsync("month")));
     [RelayCommand] private Task SubscribeYear() => Run(async () => Shell.OpenUrl(await Shell.Api.CheckoutUrlAsync("year")));
     [RelayCommand] private Task Manage() => Run(async () => Shell.OpenUrl(await Shell.Api.PortalUrlAsync()));
@@ -242,6 +255,9 @@ public sealed partial class AccountViewModel : PageBase
     {
         await Shell.Api.LogoutAsync();
         Player.Engine.Stop();
+        Shell.Offline.RemoveAll();   // downloads belong to the subscription
+        Shell.Videos.Clear();
+        Shell.Settings.LastMe = null;
         Shell.Playlists.SignedOut();
         Shell.Me = new Me();
         Shell.HasPassword = false;
@@ -297,6 +313,19 @@ public sealed partial class SoundViewModel : PageBase
     {
         get => Shell.Settings.Vinyl;
         set { Shell.Settings.Vinyl = value; Shell.Settings.Save(); OnPropertyChanged(); }
+    }
+
+    public int Crossfade
+    {
+        get => Shell.Settings.CrossfadeSeconds;
+        set { Shell.Settings.CrossfadeSeconds = value; Shell.Settings.Save(); OnPropertyChanged(); Player.Replan(); }
+    }
+    [RelayCommand] private void SetCrossfade(string s) => Crossfade = int.Parse(s);
+
+    public bool VideoOn
+    {
+        get => Shell.Settings.VideoOn;
+        set { Shell.Settings.VideoOn = value; Shell.Settings.Save(); OnPropertyChanged(); Player.LoadVideo(); }
     }
 
     public bool VisualizerOn

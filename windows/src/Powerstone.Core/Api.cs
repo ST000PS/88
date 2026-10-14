@@ -117,6 +117,17 @@ public sealed class Api : IDisposable
         return c;
     }
 
+    /// <summary>/api/me, or null when the site couldn't be reached (so callers can tell "offline" from "signed out").</summary>
+    public async Task<Me?> TryMeAsync()
+    {
+        try
+        {
+            var (code, body) = await Get("/api/me");
+            return code == 200 ? Json.Parse<Me>(body) : code is 401 or 403 ? new Me() : null;
+        }
+        catch { return null; }
+    }
+
     public async Task<Me> MeAsync()
     {
         try
