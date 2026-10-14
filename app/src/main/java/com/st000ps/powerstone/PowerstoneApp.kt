@@ -20,13 +20,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import com.st000ps.powerstone.data.streamPath
 
-class PowerstoneApp : Application() {
+class PowerstoneApp : Application(), coil.ImageLoaderFactory {
     lateinit var api: Api private set
     lateinit var settings: Settings private set
+    lateinit var vault: com.st000ps.powerstone.data.CredentialVault private set
     lateinit var playlists: PlaylistStore private set
     lateinit var history: ListeningHistory private set
     lateinit var session: SessionStore private set
@@ -56,6 +58,7 @@ class PowerstoneApp : Application() {
         super.onCreate()
         api = Api(this)
         settings = Settings(this)
+        vault = com.st000ps.powerstone.data.CredentialVault(this)
         playlists = PlaylistStore(api, settings, filesDir, scope)
         history = ListeningHistory(filesDir, api.json)
         session = SessionStore(this, api.json)
@@ -65,6 +68,38 @@ class PowerstoneApp : Application() {
         api.cachedCatalog()?.let { releases.value = it.releases }
         settings.eq.onEach(AudioFx::apply).launchIn(scope)
         AudioFx.spectrumOn = settings.visualizerOn
+    }
+
+    /**
+     * Covers load through the API's client (one connection pool, one TLS session to the site) and
+     * keep a 256 MB disk cache, so scrolling the catalogue again is instant and costs no data.
+     */
+    override fun newImageLoader(): coil.ImageLoader = coil.ImageLoader.Builder(this)
+        .okHttpClient(api.http)
+        .diskCache { coil.disk.DiskCache.Builder().directory(cacheDir.resolve("covers")).maxSizeBytes(256L shl 20).build() }
+        .crossfade(true)
+        .build()
+
+    private val signInLock = kotlinx.coroutines.sync.Mutex()
+
+    /**
+     * The account as the site sees it, signing back in first if the session has ended and this
+     * phone has "stay signed in" credentials. Null when the site can't be reached (offline).
+     * A rejected password forgets the stored one; network trouble never does.
+     */
+    suspend fun ensureSignedIn(): com.st000ps.powerstone.data.Me? = signInLock.withLock {
+        val now = api.tryMe() ?: return@withLock null
+        if (now.signedIn) return@withLock now
+        val (email, password) = vault.load() ?: return@withLock now
+        try {
+            api.passwordLogin(email, password)
+        } catch (e: com.st000ps.powerstone.data.ApiException) {
+            vault.clear()
+            return@withLock now
+        } catch (e: Exception) {
+            return@withLock now
+        }
+        api.tryMe()?.also { me.value = it } ?: now
     }
 
     /** Adds or removes a favourite (optimistic; rolls back if the site says no). Returns success. */

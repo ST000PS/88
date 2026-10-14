@@ -1,0 +1,9 @@
+<!-- Shortcut icon: play, white on black. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="oval"><solid android:color="#FF0A0A0A" /></shape></item>
+    <item android:gravity="center" android:width="22dp" android:height="22dp">
+        <vector android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+            <path android:fillColor="#FFF2F2F2" android:pathData="M8,5L19,12L8,19Z" />
+        </vector>
+    </item>
+</layer-list>

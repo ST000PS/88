@@ -105,7 +105,20 @@ headset controls)
   releases and top tags.
 - Signed out, history and stats come from what you've played on this device.
 
+**Quick access & data**
+- **App shortcuts** (long-press the icon): Shuffle everything, and Resume where you left off.
+- **Quick Settings tile** "88.8FM": play or pause from the shade; with nothing loaded it opens the
+  app and resumes or starts the station.
+- **Audio cache** (1 GB, least-recently-played out first): replays cost no data and start
+  instantly, and the widget's groove analysis reads from it instead of downloading again.
+  Full-length audio in it is cleared when the account isn't subscribed, like downloads.
+- Covers load through the API's connection pool, with a 256 MB disk cache.
+
 **Account**
+- **Stay signed in:** password sign-in can remember the account on the phone, encrypted with a key
+  held in the Android Keystore, and never in the code or backups. If the site's session ends, the
+  app signs back in quietly: at startup, when the app opens, before playback, and if a stream
+  returns 401. Signing out forgets it.
 - Sign in with an emailed 6-digit code or a password; you stay signed in. You can make or change
   a password.
 - Subscribe monthly or yearly, or manage your subscription. These open Stripe in your browser,

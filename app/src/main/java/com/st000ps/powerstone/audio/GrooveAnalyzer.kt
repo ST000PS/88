@@ -1,10 +1,8 @@
 package com.st000ps.powerstone.audio
 
-import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
-import android.net.Uri
 import java.nio.ByteOrder
 
 /**
@@ -14,12 +12,12 @@ import java.nio.ByteOrder
 object GrooveAnalyzer {
     private const val SECONDS = 16
 
-    /** [headers] carry the signed-in cookie for streams. Null if the audio can't be read. */
-    fun analyze(context: Context, uri: Uri, headers: Map<String, String>, durationMs: Long, bpm: Int): Groove? {
+    /** [source] points the extractor at the audio (a file, or the shared cache). Null if it can't be read. */
+    fun analyze(durationMs: Long, bpm: Int, source: (MediaExtractor) -> Unit): Groove? {
         val ex = MediaExtractor()
         var codec: MediaCodec? = null
         try {
-            if (uri.scheme == "http" || uri.scheme == "https") ex.setDataSource(uri.toString(), headers) else ex.setDataSource(context, uri, null)
+            source(ex)
             val track = (0 until ex.trackCount).firstOrNull { ex.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true } ?: return null
             ex.selectTrack(track)
             val fmt = ex.getTrackFormat(track)

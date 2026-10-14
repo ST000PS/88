@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon: start the station or pick up where you left off. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="shuffle" android:enabled="true" android:icon="@drawable/ic_sc_shuffle"
+        android:shortcutShortLabel="@string/sc_shuffle" android:shortcutLongLabel="@string/sc_shuffle_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.st000ps.powerstone"
+            android:targetClass="com.st000ps.powerstone.ui.MainActivity">
+            <extra android:name="widget_action" android:value="shuffle" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="resume" android:enabled="true" android:icon="@drawable/ic_sc_resume"
+        android:shortcutShortLabel="@string/sc_resume" android:shortcutLongLabel="@string/sc_resume_long">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="com.st000ps.powerstone"
+            android:targetClass="com.st000ps.powerstone.ui.MainActivity">
+            <extra android:name="widget_action" android:value="resume" />
+        </intent>
+    </shortcut>
+</shortcuts>

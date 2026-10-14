@@ -189,12 +189,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshMe() = viewModelScope.launch { refreshAccount() }
 
     private suspend fun refreshAccount() {
-        val fresh = api.tryMe()
+        val fresh = app.ensureSignedIn() // quietly signs back in if the session ended (stay signed in)
         app.isOffline.value = fresh == null
         if (fresh != null) {
             app.me.value = fresh
             // Only a real answer from the site may lock or delete downloads — never a network failure.
             app.offline.accountChecked(fresh)
+            // Full-length audio in the playback cache follows the same rule as downloads.
+            if (!fresh.isSubscriber) withContext(kotlinx.coroutines.Dispatchers.IO) { com.st000ps.powerstone.playback.MediaCache.clear(app) }
         }
         val me = app.me.value
         if (fresh == null) { app.playlists.load(false); return } // offline: keep what we know
@@ -238,7 +240,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun verifyCode(email: String, code: String) { api.verifyCode(email, code); refreshAccount() }
 
-    suspend fun passwordLogin(email: String, password: String) { api.passwordLogin(email, password); refreshAccount() }
+    suspend fun passwordLogin(email: String, password: String, stay: Boolean = true) {
+        api.passwordLogin(email, password)
+        if (stay) app.vault.save(email, password) else app.vault.clear()
+        refreshAccount()
+    }
 
     suspend fun setPassword(password: String) {
         api.setPassword(password)
@@ -249,12 +255,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun portalUrl() = api.portalUrl()
 
     fun logout() = viewModelScope.launch {
+        app.vault.clear() // signing out means staying out
         api.logout()
         controller?.run { stop(); clearMediaItems() }
         app.me.value = Me()
         app.playlists.signedOut()
         app.favs.value = emptyList()
         app.offline.removeAll() // downloads belong to the subscription
+        withContext(kotlinx.coroutines.Dispatchers.IO) { com.st000ps.powerstone.playback.MediaCache.clear(app) }
         _state.update { it.copy(password = PasswordState()) }
     }
 

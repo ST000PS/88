@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">88.8FM</string>
     <string name="widget_description">88.8FM on your home screen: a live FM tuner, a spinning record and the controls. Resize it for more.</string>
+    <string name="sc_shuffle">Shuffle</string>
+    <string name="sc_shuffle_long">Shuffle everything</string>
+    <string name="sc_resume">Resume</string>
+    <string name="sc_resume_long">Resume where you left off</string>
+    <string name="tile_label">88.8FM</string>
 </resources>

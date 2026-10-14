@@ -1,0 +1,5 @@
+<!-- Shortcut icon: shuffle, white on black (adaptive-icon safe zone). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape android:shape="oval"><solid android:color="#FF0A0A0A" /></shape></item>
+    <item android:drawable="@drawable/w_i_shuffle" android:gravity="center" android:width="24dp" android:height="24dp" />
+</layer-list>

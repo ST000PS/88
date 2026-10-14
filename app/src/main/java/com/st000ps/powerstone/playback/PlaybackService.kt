@@ -55,7 +55,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
  * Runs the player in the background so audio keeps going with the screen off,
@@ -87,6 +86,7 @@ class PlaybackService : MediaSessionService() {
     private val widgetTick = object : Runnable {
         override fun run() {
             if (!exo.isPlaying) return
+            maybeListenForGroove()
             val power = getSystemService(android.os.PowerManager::class.java)
             if (power?.isInteractive != false && PlayerWidget.ids(this@PlaybackService).isNotEmpty()) PlayerWidget.refresh(this@PlaybackService)
             handler.postDelayed(this, 1000)
@@ -104,8 +104,9 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
-        // Same OkHttp client (and cookie jar) as the API, so full-length streams are authorised.
-        val dataSource = OkHttpDataSource.Factory(app.api.http)
+        // Through the shared audio cache, with the API's client (and cookie jar) behind it so
+        // full-length streams are authorised.
+        val dataSource = MediaCache.factory(this)
         val renderers = object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink =
                 DefaultAudioSink.Builder(context)
@@ -134,6 +135,7 @@ class PlaybackService : MediaSessionService() {
                     handler.removeCallbacks(fadeTick); handler.post(fadeTick)
                     handler.removeCallbacks(widgetTick); handler.postDelayed(widgetTick, 1000)
                 }
+                if (events.contains(Player.EVENT_IS_PLAYING_CHANGED) || events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) StationTile.refresh(this@PlaybackService)
                 if (events.contains(Player.EVENT_IS_PLAYING_CHANGED)) {
                     if (!player.isPlaying) refreshToday()
                     handler.removeCallbacks(saveRunnable)
@@ -147,6 +149,19 @@ class PlaybackService : MediaSessionService() {
                 fadeInStart = if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) SystemClock.elapsedRealtime() else 0L
                 updateFade()
                 tune++ // the widget's tuner needle sweeps in again
+            }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                // The site's session ended mid-listen (401/403 on a full track): sign back in
+                // quietly with "stay signed in" and carry on from the same spot. Once a minute at most.
+                val http = generateSequence(error.cause) { it.cause }.filterIsInstance<androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException>().firstOrNull()
+                if (http == null || http.responseCode !in setOf(401, 403)) return
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastReauth < 60_000) return
+                lastReauth = now
+                scope.launch {
+                    if (app.ensureSignedIn()?.signedIn == true) { exo.prepare(); exo.play() }
+                }
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -202,6 +217,9 @@ class PlaybackService : MediaSessionService() {
             })
             .build()
         instance = this
+        // Started by the widget, a Bluetooth play or media resumption: make sure the session is
+        // live before the first full-length stream is requested.
+        scope.launch { app.ensureSignedIn() }
         refreshToday()
         restoreSession()
         pushWidget()
@@ -300,6 +318,11 @@ class PlaybackService : MediaSessionService() {
 
     // ---------- home-screen widget ----------
 
+    /** For the Quick Settings tile. */
+    val isPlayingNow get() = exo.isPlaying
+    val hasMedia get() = exo.currentMediaItem != null
+    val nowTitle get() = exo.mediaMetadata.title?.toString() ?: ""
+
     /** Called by the widget's buttons (main thread). */
     fun widgetCommand(what: String) {
         val p = session?.player ?: return
@@ -316,28 +339,31 @@ class PlaybackService : MediaSessionService() {
     }
 
     private val grooveJobs = HashSet<String>()
+    private var lastReauth = 0L
 
     /**
-     * Works out a track's groove for the widget's pads, once per track: decodes ~16 s of it and finds
-     * where its kicks, snares and hats land. Downloaded tracks always; streams only on unmetered
-     * networks (it reads the audio a second time).
+     * Works out the playing track's groove for the widget's pads, once per track: decodes ~16 s of
+     * it and finds where its kicks, snares and hats land. Checked once a second while playing.
      */
-    private fun listenForGroove(id: String, item: MediaItem, bpm: Int?) {
-        if (bpm == null || id in grooveJobs || WidgetStore.groove(this, id) != null) return
+    private fun maybeListenForGroove() {
+        val item = exo.currentMediaItem ?: return
+        val id = item.mediaId
+        if (id in grooveJobs || WidgetStore.groove(this, id) != null) return
+        val r = app.releases.value.firstOrNull { id.startsWith(it.id + "/") } ?: return
+        val bpm = r.tracks.firstOrNull { trackId(r, it) == id }?.bpm ?: return
         val uri = item.localConfiguration?.uri ?: return
         val local = uri.scheme == "file" || uri.scheme == "content"
-        val unmetered = getSystemService(android.net.ConnectivityManager::class.java)?.isActiveNetworkMetered == false
-        if (!local && !unmetered) return
+        val duration = exo.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: return
+        // Streams: wait until playback is past the stretch analysed (from a third in), so it's
+        // read from the audio cache rather than downloaded again.
+        if (!local && exo.currentPosition < duration * 0.45) return
         grooveJobs += id
-        val duration = exo.duration.takeIf { it != C.TIME_UNSET } ?: 0L
         scope.launch {
             val groove = withContext(Dispatchers.IO) {
-                val headers = if (local) emptyMap() else {
-                    val url = uri.toString().toHttpUrlOrNull()
-                    val cookie = url?.let { u -> app.api.http.cookieJar.loadForRequest(u).joinToString("; ") { "${it.name}=${it.value}" } }
-                    if (cookie.isNullOrEmpty()) emptyMap() else mapOf("Cookie" to cookie)
+                GrooveAnalyzer.analyze(duration, bpm) { ex ->
+                    if (local) ex.setDataSource(this@PlaybackService, uri, null)
+                    else ex.setDataSource(CachedMediaSource(MediaCache.factory(this@PlaybackService), uri))
                 }
-                GrooveAnalyzer.analyze(this@PlaybackService, uri, headers, duration, bpm)
             }
             grooveJobs -= id
             if (groove != null) {
@@ -418,7 +444,6 @@ class PlaybackService : MediaSessionService() {
             sleepAt = sleep.endAt,
             sleepEndOfTrack = sleep.endOfTrack,
         )
-        if (id != null && found != null) listenForGroove(id, item, found.second.bpm)
         if (next.sameAs(lastWidget)) return // only redraw when something visible changed
         lastWidget = next
         PlayerWidget.update(this, next)

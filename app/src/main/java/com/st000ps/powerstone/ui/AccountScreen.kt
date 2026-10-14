@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -190,7 +191,8 @@ private fun SignInForm(vm: AppViewModel) {
     var email by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-    var usePassword by rememberSaveable { mutableStateOf(false) }
+    var usePassword by rememberSaveable { mutableStateOf(true) }
+    var stay by rememberSaveable { mutableStateOf(true) }
     var codeSent by rememberSaveable { mutableStateOf(false) }
     val b = rememberBusy()
 
@@ -217,9 +219,16 @@ private fun SignInForm(vm: AppViewModel) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             modifier = Modifier.fillMaxWidth(),
         )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { stay = !stay }) {
+            Checkbox(checked = stay, onCheckedChange = { stay = it })
+            Column {
+                Text("Stay signed in")
+                Text("Kept encrypted on this phone only; signs you back in if the site logs you out.", style = MaterialTheme.typography.bodySmall, color = Dim)
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Button(enabled = !b.busy && email.isNotBlank() && password.isNotEmpty(), onClick = {
-            run { vm.passwordLogin(email.trim(), password) }
+            run { vm.passwordLogin(email.trim(), password, stay) }
         }) { Text("SIGN IN") }
     } else if (!codeSent) {
         Button(enabled = !b.busy && email.contains('@'), onClick = {
