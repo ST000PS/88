@@ -33,8 +33,8 @@ public sealed partial class PlayerViewModel : ObservableObject
     [ObservableProperty] private float _volume;
 
     public bool HasTrack => Current != null;
-    public string Title => Current?.Track.Title ?? "";
-    public string Subtitle => Current == null ? "" : $"{Current.Release.Artist} · {Current.Release.Title}";
+    public string Title => Current?.Track.Title ?? "88.8FM";
+    public string Subtitle => Current == null ? "Press play to shuffle everything" : $"{Current.Release.Artist} · {Current.Release.Title}";
     public string? Cover => Current?.Release.Cover ?? Current?.Release.Thumb;
     public string PositionText => Format.Duration(Position);
     /// <summary>0..1, for the taskbar progress bar.</summary>
@@ -250,6 +250,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     {
         if (Engine.Current != null) Engine.Resume();
         else if (_queue.Current is { } c) _ = Engine.PlayAsync(c);
+        else SmartShuffle(); // nothing queued yet: play means "play me something"
     }
 
     [RelayCommand]

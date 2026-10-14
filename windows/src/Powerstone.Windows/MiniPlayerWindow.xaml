@@ -23,7 +23,10 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Border Width="112" Height="112" CornerRadius="7,0,0,7" ClipToBounds="True" Background="{StaticResource Ink}">
+                <Grid>
+                <Rectangle Width="28" Height="28" Fill="{StaticResource Rose}" />
                 <Image Source="{Binding Cover, Converter={StaticResource Img}}" Stretch="UniformToFill" ToolTip="Open the full player" Cursor="Hand" />
+                </Grid>
             </Border>
             <DockPanel Grid.Column="1" Margin="10,6,6,6">
                 <!-- title + window buttons -->

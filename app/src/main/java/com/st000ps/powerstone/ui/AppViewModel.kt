@@ -453,7 +453,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         toast("Shuffle — ${picks[0].second.title} / ${picks[0].first.title}")
     }
 
-    fun togglePlay() { controller?.run { if (playWhenReady && isPlaying) pause() else { if (playbackState == Player.STATE_IDLE) prepare(); play() } } }
+    fun togglePlay() {
+        val c = controller ?: return
+        if (c.mediaItemCount == 0) { smartShuffle(); return } // nothing queued: play means "play me something"
+        if (c.playWhenReady && c.isPlaying) c.pause() else { if (c.playbackState == Player.STATE_IDLE) c.prepare(); c.play() }
+    }
     fun next() { controller?.seekToNextMediaItem() }
     fun previous() { controller?.seekToPrevious() }
     fun seekTo(ms: Long) { controller?.seekTo(ms); syncNow() }
