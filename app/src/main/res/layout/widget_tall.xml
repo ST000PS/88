@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Big card: the cover as the label of a spinning record, ON AIR header, the FM dial, full transport. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/widget_fill" android:contentDescription="@null" />
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/widget_shade" android:contentDescription="@null" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="vertical" android:padding="16dp">
+        <include layout="@layout/widget_onair" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+            android:layout_marginTop="8dp" android:gravity="center_vertical" android:orientation="horizontal">
+            <FrameLayout android:id="@+id/w_record" android:layout_width="128dp" android:layout_height="128dp">
+                <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:src="@drawable/w_vinyl" android:contentDescription="@null" />
+                <ImageView android:id="@+id/w_label" android:layout_width="58dp" android:layout_height="58dp"
+                    android:layout_gravity="center" android:scaleType="centerCrop" android:src="@mipmap/ic_launcher"
+                    android:contentDescription="@null" />
+                <ProgressBar android:id="@+id/w_sheen_on" android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:minWidth="128dp" android:maxWidth="128dp" android:minHeight="128dp" android:maxHeight="128dp"
+                    android:indeterminate="true" android:indeterminateOnly="true"
+                    android:indeterminateDrawable="@drawable/w_sheen_anim"
+                    android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply" android:visibility="gone" />
+                <ImageView android:id="@+id/w_sheen_off" android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:src="@drawable/w_sheen" android:contentDescription="@null" />
+            </FrameLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:layout_marginStart="14dp" android:orientation="vertical">
+                <TextView android:id="@+id/w_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:ellipsize="end" android:fontFamily="monospace" android:maxLines="2" android:text="@string/app_name"
+                    android:textColor="#EDEDED" android:textSize="19sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp">
+                    <include layout="@layout/widget_info" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+                    <include layout="@layout/widget_time" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:fontFamily="monospace" android:text="FM" android:textColor="#7A7A7A" android:textSize="9sp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:fontFamily="monospace" android:text="MHz" android:textColor="#7A7A7A" android:textSize="9sp" />
+        </LinearLayout>
+        <include layout="@layout/widget_dial" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="10dp"
+            android:gravity="center" android:orientation="horizontal">
+            <ImageButton android:id="@+id/w_fav" android:layout_width="44dp" android:layout_height="44dp"
+                android:layout_marginEnd="6dp" android:background="@null" android:src="@drawable/ic_heart_outline"
+                android:contentDescription="Favourite" />
+            <ImageButton android:id="@+id/w_prev" android:layout_width="48dp" android:layout_height="48dp"
+                android:layout_marginEnd="8dp" android:background="@null" android:src="@drawable/ic_w_prev" android:contentDescription="Previous" />
+            <ImageButton android:id="@+id/w_play" android:layout_width="56dp" android:layout_height="56dp"
+                android:background="@drawable/widget_play_bg" android:src="@drawable/ic_w_play" android:contentDescription="Play or pause" />
+            <ImageButton android:id="@+id/w_next" android:layout_width="48dp" android:layout_height="48dp"
+                android:layout_marginStart="8dp" android:background="@null" android:src="@drawable/ic_w_next" android:contentDescription="Next" />
+            <ImageButton android:id="@+id/w_shuffle" android:layout_width="44dp" android:layout_height="44dp"
+                android:layout_marginStart="6dp" android:background="@null" android:src="@drawable/ic_w_shuffle"
+                android:contentDescription="Shuffle everything" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

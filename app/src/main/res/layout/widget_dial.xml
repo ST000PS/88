@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The FM tuner strip: the scale is centred on 88.8, so the needle stays in the middle at any width. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="24dp">
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/w_dial" android:contentDescription="@null" />
+    <ProgressBar android:id="@+id/w_needle_on" android:layout_width="24dp" android:layout_height="24dp"
+        android:layout_gravity="center" android:minWidth="24dp" android:maxWidth="24dp" android:minHeight="24dp" android:maxHeight="24dp"
+        android:indeterminate="true" android:indeterminateOnly="true"
+        android:indeterminateDrawable="@drawable/w_needle_anim"
+        android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply" android:visibility="gone" />
+    <ImageView android:id="@+id/w_needle_off" android:layout_width="24dp" android:layout_height="24dp"
+        android:layout_gravity="center" android:src="@drawable/w_needle" android:contentDescription="@null" />
+</FrameLayout>

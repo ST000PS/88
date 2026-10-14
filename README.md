@@ -37,8 +37,16 @@ headset controls)
 
 **Home-screen widget, sleep timer, resume**
 - **Widget**:
-  - A 4×1 row with art, title, previous, play/pause and next. Resize it taller to get a card with
-    big artwork and shuffle-everything.
+  - Three sizes:
+    - A 4×1 row: art, title, a level meter and previous/play/next.
+    - A card: an ON AIR lamp, a ticking track timer (plus the sleep countdown) and an FM tuner
+      strip whose needle drifts on 88.8.
+    - A big card: the cover becomes the label of a spinning record, with favourite and shuffle
+      buttons.
+  - The card takes its colour from the cover. While playing, the info line rotates between the
+    release, BPM / key / track number, and what's up next.
+  - It only animates while music plays. The animations are vectors run by the launcher, so the app
+    doesn't redraw anything.
   - When the app isn't running it shows *Resume* or *Shuffle*. These open the app and start
     playing, because Android doesn't let widgets start playback in the background.
 - **Sleep timer** (moon button on the player): 15–90 minutes or the end of the current track. It

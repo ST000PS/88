@@ -1,0 +1,17 @@
+<!-- Light catching the grooves, turning at 33⅓ rpm. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector android:width="100dp" android:height="100dp" android:viewportWidth="100" android:viewportHeight="100">
+            <group android:name="spin" android:pivotX="50" android:pivotY="50">
+                <path android:fillColor="#1FFFFFFF" android:pathData="M50,50L74.00,8.43A48,48 0,0 1,93.50,29.71ZM50,50L26.00,91.57A48,48 0,0 1,6.50,70.29Z" />
+                <path android:fillColor="#12FFFFFF" android:pathData="M50,50L93.50,29.71A48,48 0,0 1,97.27,41.66ZM50,50L6.50,70.29A48,48 0,0 1,2.73,58.34Z" />
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="spin">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="rotation" android:valueFrom="0" android:valueTo="360"
+                android:duration="1800" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator" />
+        </aapt:attr>
+    </target>
+</animated-vector>

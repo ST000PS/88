@@ -35,6 +35,7 @@ import com.st000ps.powerstone.data.PlayEvent
 import com.st000ps.powerstone.data.SavedSession
 import com.st000ps.powerstone.data.SleepState
 import com.st000ps.powerstone.data.resolve
+import com.st000ps.powerstone.data.trackId
 import com.st000ps.powerstone.ui.LockScreenActivity
 import com.st000ps.powerstone.widget.PlayerWidget
 import com.st000ps.powerstone.widget.WidgetState
@@ -75,6 +76,8 @@ class PlaybackService : MediaSessionService() {
     }
     private var artUrl: String? = null
     private var art: android.graphics.Bitmap? = null
+    private var artLabel: android.graphics.Bitmap? = null
+    private var artTint = WidgetState.DEFAULT_TINT
     private var artJob: Job? = null
     private var lastWidget: WidgetState? = null
     private lateinit var vinyl: VinylPlayer
@@ -134,8 +137,8 @@ class PlaybackService : MediaSessionService() {
                 }
             }
         })
-        app.sleep.onEach(::applySleep).launchIn(scope)
-        app.favs.onEach { updateButtons() }.launchIn(scope)
+        app.sleep.onEach { applySleep(it); pushWidget() }.launchIn(scope)
+        app.favs.onEach { updateButtons(); pushWidget() }.launchIn(scope)
 
         // Tapping the media notification: over the lock screen it opens the lock-screen player,
         // otherwise it goes straight to the app.
@@ -284,6 +287,7 @@ class PlaybackService : MediaSessionService() {
             "play_pause" -> if (p.isPlaying) p.pause() else { if (p.playbackState == Player.STATE_IDLE) p.prepare(); p.play() }
             "next" -> p.seekToNextMediaItem()
             "previous" -> p.seekToPrevious()
+            "fav" -> toggleFav()
             "shuffle" -> {
                 val picks = Queue.smartShuffle(app, 60).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.SHUFFLE) }
                 if (picks.isNotEmpty()) { p.setMediaItems(picks, 0, 0); p.prepare(); p.play() }
@@ -296,23 +300,51 @@ class PlaybackService : MediaSessionService() {
         val md = exo.mediaMetadata
         val url = md.artworkUri?.toString()
         if (url != artUrl) {
-            artUrl = url; art = null
+            artUrl = url; art = null; artLabel = null; artTint = WidgetState.DEFAULT_TINT
             artJob?.cancel()
             if (url != null) artJob = scope.launch {
                 val result = imageLoader.execute(ImageRequest.Builder(this@PlaybackService).data(url).size(200).allowHardware(false).build())
                 // Small on purpose: widget updates travel over Binder, which caps their size.
-                art = result.drawable?.toBitmap(200, 200)
+                val bmp = result.drawable?.toBitmap(200, 200) ?: return@launch
+                art = bmp
+                artLabel = PlayerWidget.labelFrom(bmp)
+                artTint = PlayerWidget.tintFrom(bmp)
                 pushWidget()
             }
         }
+        val id = item?.mediaId
+        val found = id?.let { mid ->
+            val r = app.releases.value.firstOrNull { mid.startsWith(it.id + "/") }
+            r?.let { rel -> rel.tracks.firstOrNull { trackId(rel, it) == mid }?.let { rel to it } }
+        }
+        val detail = found?.let { (r, t) ->
+            listOfNotNull(t.bpm?.let { "$it BPM" }, t.key, "track ${t.n}/${r.tracks.size}").joinToString(" · ")
+        } ?: ""
+        val nextIndex = exo.nextMediaItemIndex
+        val upNext = if (nextIndex != C.INDEX_UNSET) exo.getMediaItemAt(nextIndex).mediaMetadata.title?.let { "next › $it" } ?: "" else ""
+        val playing = exo.playWhenReady && exo.playbackState != Player.STATE_ENDED && item != null
+        val position = exo.currentPosition
+        val sleep = app.sleep.value
         val next = WidgetState(
             title = md.title?.toString() ?: "",
             subtitle = listOfNotNull(md.artist, md.albumTitle).joinToString(" · "),
-            playing = exo.playWhenReady && exo.playbackState != Player.STATE_ENDED && item != null,
+            detail = detail,
+            upNext = upNext,
+            playing = playing,
             art = art,
+            label = artLabel,
+            tint = artTint,
             hasTrack = item != null,
+            fav = id != null && id in app.favs.value,
+            canFav = app.me.value.signedIn,
+            // The timer only ticks once the audio really moves (not while buffering).
+            startedAt = if (exo.isPlaying) SystemClock.elapsedRealtime() - position else 0,
+            positionMs = if (exo.isPlaying) 0 else position,
+            durationMs = exo.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: 0,
+            sleepAt = sleep.endAt,
+            sleepEndOfTrack = sleep.endOfTrack,
         )
-        if (next == lastWidget) return // only redraw when something visible changed
+        if (next.sameAs(lastWidget)) return // only redraw when something visible changed
         lastWidget = next
         PlayerWidget.update(this, next)
     }

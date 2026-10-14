@@ -1,0 +1,6 @@
+<!-- Darkens the cover-coloured card towards the bottom so the controls stay readable. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient android:angle="270" android:startColor="#33000000" android:centerColor="#99101010" android:endColor="#E6101010" />
+    <stroke android:width="1dp" android:color="#22FFFFFF" />
+    <corners android:radius="22dp" />
+</shape>
