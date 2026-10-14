@@ -37,7 +37,7 @@
     <Style TargetType="TextBlock">
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
-    <Style x:Key="Dim" TargetType="TextBlock">
+    <Style x:Key="DimText" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{StaticResource Dim}" />
         <Setter Property="FontSize" Value="11" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />

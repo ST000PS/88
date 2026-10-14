@@ -70,3 +70,30 @@ jobs:
           name: 88.8FM-windows-x64
           path: windows/out/88.8FM.exe
           if-no-files-found: error
+
+      # Launches the real exe: it must still be running after 20 s with no crash log.
+      - name: Smoke test (app starts)
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:LOCALAPPDATA '88.8FM'
+          Remove-Item -Recurse -Force $data -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath windows/out/88.8FM.exe -PassThru
+          Start-Sleep -Seconds 20
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save((Join-Path $PWD 'windows/out/screenshot.png'))
+          $log = Join-Path $data 'crash.log'
+          if (Test-Path $log) { Write-Host '--- crash.log ---'; Get-Content $log; exit 1 }
+          if ($p.HasExited) { Write-Host "App exited during startup (code $($p.ExitCode))"; exit 1 }
+          Write-Host "App is running after 20 s (pid $($p.Id))"
+          Stop-Process -Id $p.Id -Force
+
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-screenshot
+          path: windows/out/screenshot.png
+          if-no-files-found: ignore

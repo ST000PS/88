@@ -4,6 +4,10 @@
                     xmlns:vm="clr-namespace:Powerstone.Windows.ViewModels"
                     xmlns:c="clr-namespace:Powerstone.Windows.Controls">
 
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/88.8FM;component/Views/Theme.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
     <!-- ===================================================== shared pieces -->
 
     <Style x:Key="MenuEntryItem" TargetType="MenuItem">
@@ -42,9 +46,9 @@
                        Visibility="{Binding ShowAlbum, Converter={StaticResource Vis}}" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Title}" Foreground="{Binding IsCurrent, Converter={StaticResource RoseIfTrue}}" />
-                    <TextBlock Text="{Binding Meta}" Style="{StaticResource Dim}" Visibility="{Binding Meta, Converter={StaticResource NullVis}}" />
+                    <TextBlock Text="{Binding Meta}" Style="{StaticResource DimText}" Visibility="{Binding Meta, Converter={StaticResource NullVis}}" />
                 </StackPanel>
-                <TextBlock Grid.Column="2" Text="{Binding Duration}" Style="{StaticResource Dim}" VerticalAlignment="Center" Margin="12,0" />
+                <TextBlock Grid.Column="2" Text="{Binding Duration}" Style="{StaticResource DimText}" VerticalAlignment="Center" Margin="12,0" />
                 <Button Grid.Column="3" Style="{StaticResource Icon}" Command="{Binding FavCommand}" ToolTip="Favourite"
                         Visibility="{Binding SignedIn, Converter={StaticResource Vis}}">
                     <Grid>
@@ -70,7 +74,7 @@
                     <Image Source="{Binding Thumb, Converter={StaticResource Img}}" Stretch="UniformToFill" />
                 </Border>
                 <TextBlock Text="{Binding Title}" FontWeight="Bold" Margin="0,6,0,0" />
-                <TextBlock Text="{Binding Summary}" Style="{StaticResource Dim}" />
+                <TextBlock Text="{Binding Summary}" Style="{StaticResource DimText}" />
             </StackPanel>
         </Button>
     </DataTemplate>
@@ -86,7 +90,7 @@
                 <Image Source="{Binding Thumb, Converter={StaticResource Img}}" Width="44" Height="44" Stretch="UniformToFill" HorizontalAlignment="Left" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Title}" />
-                    <TextBlock Text="{Binding Details}" Style="{StaticResource Dim}" />
+                    <TextBlock Text="{Binding Details}" Style="{StaticResource DimText}" />
                 </StackPanel>
             </Grid>
         </Button>
@@ -101,13 +105,13 @@
         <DockPanel Margin="24,16,12,0">
             <StackPanel DockPanel.Dock="Top" Margin="0,0,12,8">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Style="{StaticResource Dim}" VerticalAlignment="Bottom" />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Style="{StaticResource DimText}" VerticalAlignment="Bottom" />
                     <TextBlock Text="Catalogue" Style="{StaticResource Heading}" />
                 </DockPanel>
                 <TextBlock Text="{Binding Shell.Error}" Foreground="{StaticResource Rose}" TextWrapping="Wrap" Visibility="{Binding Shell.Error, Converter={StaticResource NullVis}}" />
                 <Grid Margin="0,10,0,10">
                     <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged, Delay=200}" ToolTip="Search releases or songs — or paste a thepowerstone.com link to open it" />
-                    <TextBlock Text="Search releases or songs, or paste a thepowerstone.com link" Style="{StaticResource Dim}" Margin="10,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock Text="Search releases or songs, or paste a thepowerstone.com link" Style="{StaticResource DimText}" Margin="10,0" VerticalAlignment="Center" IsHitTestVisible="False">
                         <TextBlock.Visibility>
                             <Binding Path="Query" Converter="{StaticResource NullVis}" ConverterParameter="inverse" />
                         </TextBlock.Visibility>
@@ -149,13 +153,13 @@
                         <ItemsControl ItemsSource="{Binding Songs}" />
                     </StackPanel>
                     <TextBlock Text="RELEASED · 発売済み" Style="{StaticResource Label}" />
-                    <TextBlock Text="The whole catalogue, remastered." Style="{StaticResource Dim}" Margin="0,0,0,10" />
+                    <TextBlock Text="The whole catalogue, remastered." Style="{StaticResource DimText}" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding Released}" ItemTemplate="{StaticResource ReleaseCard}" ItemsPanel="{StaticResource Wrap}"
                                   Visibility="{Binding GridMode, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding Released}" ItemTemplate="{StaticResource ReleaseLine}"
                                   Visibility="{Binding GridMode, Converter={StaticResource NotVis}}" />
                     <TextBlock Text="UNRELEASED / RARE TRAX · 未発表" Style="{StaticResource Label}" />
-                    <TextBlock Text="Alt takes, roughs, test presses and rare trax from the streams. Koming soon when empty." Style="{StaticResource Dim}" Margin="0,0,0,10" />
+                    <TextBlock Text="Alt takes, roughs, test presses and rare trax from the streams. Koming soon when empty." Style="{StaticResource DimText}" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding Unreleased}" ItemTemplate="{StaticResource ReleaseCard}" ItemsPanel="{StaticResource Wrap}"
                                   Visibility="{Binding GridMode, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding Unreleased}" ItemTemplate="{StaticResource ReleaseLine}"
@@ -180,14 +184,14 @@
                 <StackPanel Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Bottom">
                     <TextBlock Text="{Binding Release.KindLabel}" Foreground="{StaticResource Rose}" FontSize="11" />
                     <TextBlock Text="{Binding Release.Title}" Style="{StaticResource Heading}" FontSize="28" />
-                    <TextBlock Text="{Binding Info}" Style="{StaticResource Dim}" FontSize="12" />
+                    <TextBlock Text="{Binding Info}" Style="{StaticResource DimText}" FontSize="12" />
                     <WrapPanel Margin="0,12,0,0">
                         <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
                         <Button Content="SHUFFLE" Command="{Binding ShuffleCommand}" Margin="0,0,8,0" />
                         <Button Content="COPY LINK" Command="{Binding ShareCommand}" Margin="0,0,8,0" />
                         <Button Content="BANDCAMP" Command="{Binding BandcampCommand}" Visibility="{Binding Release.Bandcamp, Converter={StaticResource NullVis}}" />
                     </WrapPanel>
-                    <TextBlock Text="{Binding PreviewNote}" Style="{StaticResource Dim}" Margin="0,8,0,0" Visibility="{Binding PreviewNote, Converter={StaticResource NullVis}}" />
+                    <TextBlock Text="{Binding PreviewNote}" Style="{StaticResource DimText}" Margin="0,8,0,0" Visibility="{Binding PreviewNote, Converter={StaticResource NullVis}}" />
                     <ItemsControl ItemsSource="{Binding Tags}" ItemsPanel="{StaticResource Row}" Margin="0,8,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -207,7 +211,7 @@
             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
                 <TextBlock Text="TAG" Foreground="{StaticResource Rose}" FontSize="11" />
                 <TextBlock Text="{Binding Tag, StringFormat=#{0}}" Style="{StaticResource Heading}" />
-                <TextBlock Text="{Binding Info}" Style="{StaticResource Dim}" />
+                <TextBlock Text="{Binding Info}" Style="{StaticResource DimText}" />
                 <WrapPanel Margin="0,10,0,0">
                     <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
                     <Button Content="SHUFFLE" Command="{Binding ShuffleCommand}" Margin="0,0,8,0" />
@@ -227,10 +231,10 @@
                     <Button DockPanel.Dock="Right" Style="{StaticResource Primary}" Content="+ NEW PLAYLIST" Command="{Binding NewCommand}" />
                     <TextBlock Text="Playlists" Style="{StaticResource Heading}" />
                 </DockPanel>
-                <TextBlock Text="{Binding Note}" Style="{StaticResource Dim}" Visibility="{Binding Note, Converter={StaticResource NullVis}}" />
+                <TextBlock Text="{Binding Note}" Style="{StaticResource DimText}" Visibility="{Binding Note, Converter={StaticResource NullVis}}" />
                 <Button Style="{StaticResource Link}" Content="♥ Favourites →" Command="{Binding OpenFavsCommand}" Margin="0,12,0,0"
                         Visibility="{Binding Shell.Me.SignedIn, Converter={StaticResource Vis}}" />
-                <TextBlock Text="No playlists yet. Use + NEW PLAYLIST, or right-click any track → Add to playlist." Style="{StaticResource Dim}" Margin="0,12,0,0">
+                <TextBlock Text="No playlists yet. Use + NEW PLAYLIST, or right-click any track → Add to playlist." Style="{StaticResource DimText}" Margin="0,12,0,0">
                     <TextBlock.Visibility><Binding Path="Shell.PlaylistList.Count" Converter="{StaticResource NullVis}" ConverterParameter="zero" /></TextBlock.Visibility>
                 </TextBlock>
             </StackPanel>
@@ -240,7 +244,7 @@
                         <Button Padding="10,8" BorderThickness="0" HorizontalContentAlignment="Stretch"
                                 Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding Tracks.Count, StringFormat={}{0} TRK}" Style="{StaticResource Dim}" />
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Tracks.Count, StringFormat={}{0} TRK}" Style="{StaticResource DimText}" />
                                 <TextBlock Text="{Binding Name}" />
                             </DockPanel>
                         </Button>
@@ -258,14 +262,14 @@
                     <Button DockPanel.Dock="Right" Content="RENAME" Command="{Binding RenameCommand}" Margin="8,0,0,0" />
                     <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="20" FontWeight="Bold" MaxLength="80" ToolTip="Edit the name, then RENAME" />
                 </DockPanel>
-                <TextBlock Text="{Binding Info}" Style="{StaticResource Dim}" Margin="0,4,0,0" />
+                <TextBlock Text="{Binding Info}" Style="{StaticResource DimText}" Margin="0,4,0,0" />
                 <WrapPanel Margin="0,10,0,0">
                     <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
                     <Button Content="SHUFFLE PLAY" Command="{Binding ShuffleCommand}" Margin="0,0,8,0" />
                     <Button Content="SHARE (COPY LINK)" Command="{Binding ShareCommand}" Margin="0,0,8,0" />
                     <Button Content="DELETE" Command="{Binding DeleteCommand}" Foreground="{StaticResource Rose}" />
                 </WrapPanel>
-                <TextBlock Text="Right-click a track to move or remove it. Add songs from any track's menu." Style="{StaticResource Dim}" Margin="0,8,0,0" />
+                <TextBlock Text="Right-click a track to move or remove it. Add songs from any track's menu." Style="{StaticResource DimText}" Margin="0,8,0,0" />
             </StackPanel>
             <ListBox ItemsSource="{Binding Rows}" />
         </DockPanel>
@@ -303,9 +307,9 @@
                         <RowDefinition />
                         <RowDefinition />
                     </Grid.RowDefinitions>
-                    <TextBlock Text="FROM" Style="{StaticResource Dim}" VerticalAlignment="Center" />
+                    <TextBlock Text="FROM" Style="{StaticResource DimText}" VerticalAlignment="Center" />
                     <Slider Grid.Column="1" Minimum="{Binding Min}" Maximum="{Binding Max}" Value="{Binding Lo}" IsSnapToTickEnabled="True" TickFrequency="1" />
-                    <TextBlock Grid.Row="1" Text="TO" Style="{StaticResource Dim}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="1" Text="TO" Style="{StaticResource DimText}" VerticalAlignment="Center" />
                     <Slider Grid.Row="1" Grid.Column="1" Minimum="{Binding Min}" Maximum="{Binding Max}" Value="{Binding Hi}" IsSnapToTickEnabled="True" TickFrequency="1" />
                 </Grid>
                 <DockPanel Margin="0,8,0,0">
@@ -320,7 +324,7 @@
                         <Button Style="{StaticResource ChipButton}" Content="MINOR" Command="{Binding SetKeyCommand}" CommandParameter="min">
                             <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Key" /><Binding Source="min" /></MultiBinding></Button.Tag>
                         </Button>
-                        <TextBlock Text="{Binding Count}" Style="{StaticResource Dim}" VerticalAlignment="Center" Margin="8,0,0,6" />
+                        <TextBlock Text="{Binding Count}" Style="{StaticResource DimText}" VerticalAlignment="Center" Margin="8,0,0,6" />
                     </WrapPanel>
                 </DockPanel>
             </StackPanel>
@@ -333,11 +337,11 @@
     <DataTemplate DataType="{x:Type vm:RankItem}">
         <Button Padding="10,6" BorderThickness="0" HorizontalContentAlignment="Stretch" Command="{Binding OpenCommand}">
             <DockPanel>
-                <TextBlock Text="{Binding Rank}" Style="{StaticResource Dim}" Width="36" FontSize="13" />
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Style="{StaticResource Dim}" FontSize="13" />
+                <TextBlock Text="{Binding Rank}" Style="{StaticResource DimText}" Width="36" FontSize="13" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Style="{StaticResource DimText}" FontSize="13" />
                 <StackPanel>
                     <TextBlock Text="{Binding Title}" />
-                    <TextBlock Text="{Binding Sub}" Style="{StaticResource Dim}" Visibility="{Binding Sub, Converter={StaticResource NullVis}}" />
+                    <TextBlock Text="{Binding Sub}" Style="{StaticResource DimText}" Visibility="{Binding Sub, Converter={StaticResource NullVis}}" />
                 </StackPanel>
             </DockPanel>
         </Button>
@@ -360,8 +364,8 @@
                     <TextBlock Text="{Binding Year}" FontSize="16" VerticalAlignment="Center" Margin="6,0" />
                     <Button Style="{StaticResource Icon}" Content="&#xE76C;" Command="{Binding NextYearCommand}" ToolTip="Next year" />
                 </StackPanel>
-                <TextBlock Text="{Binding Note}" Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,6,0,0" Visibility="{Binding Note, Converter={StaticResource NullVis}}" />
-                <TextBlock Text="Loading…" Style="{StaticResource Dim}" Margin="0,6,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding Note}" Style="{StaticResource DimText}" TextWrapping="Wrap" Margin="0,6,0,0" Visibility="{Binding Note, Converter={StaticResource NullVis}}" />
+                <TextBlock Text="Loading…" Style="{StaticResource DimText}" Margin="0,6,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{Binding Message}" Foreground="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="{Binding Message, Converter={StaticResource NullVis}}" />
             </StackPanel>
             <Grid>
@@ -378,7 +382,7 @@
                             <DataTemplate>
                                 <StackPanel Margin="0,0,0,14">
                                     <DockPanel Margin="0,0,0,4">
-                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Summary}" Style="{StaticResource Dim}" />
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Summary}" Style="{StaticResource DimText}" />
                                         <TextBlock Text="{Binding Header}" FontWeight="Bold" />
                                     </DockPanel>
                                     <ItemsControl ItemsSource="{Binding Tracks}">
@@ -388,11 +392,11 @@
                                                     <DockPanel>
                                                         <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
                                                             <TextBlock Text="{Binding Times}" Foreground="{StaticResource Rose}" FontWeight="Bold" HorizontalAlignment="Right" />
-                                                            <TextBlock Text="{Binding Year}" Style="{StaticResource Dim}" FontSize="10" />
+                                                            <TextBlock Text="{Binding Year}" Style="{StaticResource DimText}" FontSize="10" />
                                                         </StackPanel>
                                                         <StackPanel>
                                                             <TextBlock Text="{Binding Title}" />
-                                                            <TextBlock Text="{Binding Release}" Style="{StaticResource Dim}" />
+                                                            <TextBlock Text="{Binding Release}" Style="{StaticResource DimText}" />
                                                         </StackPanel>
                                                     </DockPanel>
                                                 </Button>
@@ -413,7 +417,7 @@
                                     <Border Background="{StaticResource Panel}" Padding="16,10" Margin="0,0,10,10" MinWidth="140">
                                         <StackPanel>
                                             <TextBlock Text="{Binding Value}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Rose}" />
-                                            <TextBlock Text="{Binding Label}" Style="{StaticResource Dim}" />
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource DimText}" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -440,7 +444,7 @@
 
                 <!-- signed out -->
                 <StackPanel Visibility="{Binding SignedIn, Converter={StaticResource NotVis}}" Margin="0,12,0,0">
-                    <TextBlock Text="Sign in with your thepowerstone.com account." Style="{StaticResource Dim}" FontSize="12" />
+                    <TextBlock Text="Sign in with your thepowerstone.com account." Style="{StaticResource DimText}" FontSize="12" />
                     <TextBlock Text="EMAIL" Style="{StaticResource Label}" />
                     <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding ShowCode, Converter={x:Static c:Not.Instance}}" />
                     <StackPanel Visibility="{Binding ShowPassword, Converter={StaticResource Vis}}">
@@ -452,7 +456,7 @@
                     <Button Style="{StaticResource Primary}" Content="EMAIL ME A CODE" HorizontalAlignment="Left" Margin="0,12,0,0"
                             Command="{Binding SendCodeCommand}" Visibility="{Binding ShowSend, Converter={StaticResource Vis}}" />
                     <StackPanel Visibility="{Binding ShowCode, Converter={StaticResource Vis}}">
-                        <TextBlock Text="Enter the 6-digit code from the email. Not there? Check spam." Style="{StaticResource Dim}" Margin="0,12,0,0" />
+                        <TextBlock Text="Enter the 6-digit code from the email. Not there? Check spam." Style="{StaticResource DimText}" Margin="0,12,0,0" />
                         <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" MaxLength="6" FontSize="18" Width="140" HorizontalAlignment="Left" Margin="0,6,0,0" />
                         <WrapPanel Margin="0,12,0,0">
                             <Button Style="{StaticResource Primary}" Content="SIGN IN" Command="{Binding VerifyCodeCommand}" Margin="0,0,8,0" />
@@ -470,7 +474,7 @@
                     <StackPanel Visibility="{Binding Me.IsSubscriber, Converter={StaticResource NotVis}}">
                         <TextBlock Text="SUBSCRIBE" Style="{StaticResource Label}" />
                         <TextBlock Text="The full remastered catalogue, unreleased &amp; rare trax, music videos, repeat and more. Checkout opens in your browser (Stripe)."
-                                   Style="{StaticResource Dim}" TextWrapping="Wrap" />
+                                   Style="{StaticResource DimText}" TextWrapping="Wrap" />
                         <WrapPanel Margin="0,10,0,0">
                             <Button Style="{StaticResource Primary}" Content="{Binding MonthPrice}" Command="{Binding SubscribeMonthCommand}" Margin="0,0,8,0" />
                             <Button Content="{Binding YearPrice}" Command="{Binding SubscribeYearCommand}" Margin="0,0,8,0" />
@@ -481,10 +485,10 @@
                             Visibility="{Binding CanManage, Converter={StaticResource Vis}}" />
 
                     <TextBlock Text="PASSWORD" Style="{StaticResource Label}" />
-                    <TextBlock Text="{Binding PasswordNote}" Style="{StaticResource Dim}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding PasswordNote}" Style="{StaticResource DimText}" TextWrapping="Wrap" />
                     <Button Style="{StaticResource Link}" Content="{Binding PasswordAction}" Command="{Binding StartPasswordCommand}" Margin="0,6,0,0" />
                     <StackPanel Visibility="{Binding ChangingPassword, Converter={StaticResource Vis}}" Margin="0,6,0,0">
-                        <TextBlock Text="New password · 8+ characters" Style="{StaticResource Dim}" />
+                        <TextBlock Text="New password · 8+ characters" Style="{StaticResource DimText}" />
                         <PasswordBox x:Name="newpw" Margin="0,4,0,0" />
                         <Button Style="{StaticResource Primary}" Content="SAVE PASSWORD" HorizontalAlignment="Left" Margin="0,8,0,0"
                                 Tag="{Binding ElementName=newpw}" Click="SetPassword_Click" />
@@ -492,7 +496,7 @@
                     <Button Content="SIGN OUT" HorizontalAlignment="Left" Margin="0,24,0,0" Command="{Binding SignOutCommand}" />
                 </StackPanel>
 
-                <TextBlock Text="Working…" Style="{StaticResource Dim}" Margin="0,10,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}" />
+                <TextBlock Text="Working…" Style="{StaticResource DimText}" Margin="0,10,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{Binding Message}" Foreground="{StaticResource Rose}" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="{Binding Message, Converter={StaticResource NullVis}}" />
 
                 <TextBlock Text="AUDIO QUALITY" Style="{StaticResource Label}" Margin="0,28,0,6" />
@@ -510,7 +514,7 @@
                         <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Quality" /><Binding Source="Lo" /></MultiBinding></Button.Tag>
                     </Button>
                 </WrapPanel>
-                <TextBlock Text="{Binding QualityNote}" Style="{StaticResource Dim}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding QualityNote}" Style="{StaticResource DimText}" TextWrapping="Wrap" />
             </StackPanel>
         </ScrollViewer>
     </DataTemplate>
@@ -522,13 +526,13 @@
             <StackPanel Margin="24,16,24,24" MaxWidth="640" HorizontalAlignment="Left">
                 <TextBlock Text="Sound · 音" Style="{StaticResource Heading}" />
                 <c:Visualizer Height="90" Margin="0,14,0,0" Source="{Binding Player.Engine.Spectrum}" IsActive="{Binding Player.IsPlaying}" />
-                <TextBlock Text="Click the visualizer to change its style." Style="{StaticResource Dim}" />
+                <TextBlock Text="Click the visualizer to change its style." Style="{StaticResource DimText}" />
 
                 <DockPanel Margin="0,10,0,0">
                     <Button DockPanel.Dock="Right" Content="FLAT" Command="{Binding FlatCommand}" />
                     <TextBlock Text="EQ · 3-BAND" Style="{StaticResource Label}" />
                 </DockPanel>
-                <TextBlock Text="Splits at 250 Hz and 4 kHz like a DJ mixer. KILL mutes a band; ISO plays only that band." Style="{StaticResource Dim}" TextWrapping="Wrap" />
+                <TextBlock Text="Splits at 250 Hz and 4 kHz like a DJ mixer. KILL mutes a band; ISO plays only that band." Style="{StaticResource DimText}" TextWrapping="Wrap" />
                 <ItemsControl ItemsSource="{Binding Bands}" Margin="0,8,0,0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -541,7 +545,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
                                 <Slider Grid.Column="1" Minimum="0" Maximum="1.5" Value="{Binding Level}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="{Binding Percent}" Style="{StaticResource Dim}" VerticalAlignment="Center" TextAlignment="Right" />
+                                <TextBlock Grid.Column="2" Text="{Binding Percent}" Style="{StaticResource DimText}" VerticalAlignment="Center" TextAlignment="Right" />
                                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="10,6,0,0">
                                     <ToggleButton Style="{StaticResource Chip}" Content="KILL" IsChecked="{Binding Kill}" />
                                     <ToggleButton Style="{StaticResource Chip}" Content="ISO" IsChecked="{Binding Iso}" />
@@ -553,7 +557,7 @@
 
                 <TextBlock Text="VINYL STOP · ビニールストップ" Style="{StaticResource Label}" Margin="0,22,0,6" />
                 <TextBlock Text="Pausing winds the record down like a turntable losing power; playing spins it back up. Works from media keys too."
-                           Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                           Style="{StaticResource DimText}" TextWrapping="Wrap" Margin="0,0,0,8" />
                 <WrapPanel>
                     <Button Style="{StaticResource ChipButton}" Content="OFF" Command="{Binding SetVinylCommand}" CommandParameter="Off">
                         <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Vinyl" /><Binding Source="Off" /></MultiBinding></Button.Tag>
@@ -594,8 +598,8 @@
                 </Viewbox>
                 <c:Visualizer Height="80" Margin="0,10,0,0" Source="{Binding Player.Engine.Spectrum}" IsActive="{Binding Player.IsPlaying}" />
                 <TextBlock Text="{Binding Player.Title}" Style="{StaticResource Heading}" Margin="0,12,0,0" />
-                <TextBlock Text="{Binding Player.Subtitle}" Style="{StaticResource Dim}" FontSize="13" />
-                <TextBlock Text="{Binding Player.Meta}" Style="{StaticResource Dim}" />
+                <TextBlock Text="{Binding Player.Subtitle}" Style="{StaticResource DimText}" FontSize="13" />
+                <TextBlock Text="{Binding Player.Meta}" Style="{StaticResource DimText}" />
             </StackPanel>
             <DockPanel Grid.Column="1" Margin="24,0,0,0">
                 <TextBlock DockPanel.Dock="Top" Text="UP NEXT" Style="{StaticResource Label}" Margin="0,0,0,6" />
@@ -605,7 +609,7 @@
                             <Button Padding="8,5" BorderThickness="0" HorizontalContentAlignment="Stretch" Command="{Binding PlayCommand}">
                                 <StackPanel>
                                     <TextBlock Text="{Binding Title}" Foreground="{Binding IsCurrent, Converter={StaticResource RoseIfTrue}}" />
-                                    <TextBlock Text="{Binding Sub}" Style="{StaticResource Dim}" />
+                                    <TextBlock Text="{Binding Sub}" Style="{StaticResource DimText}" />
                                 </StackPanel>
                             </Button>
                         </DataTemplate>

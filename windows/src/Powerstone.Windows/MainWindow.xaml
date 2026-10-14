@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="clr-namespace:Powerstone.Windows.Controls"
         Title="88.8FM" Width="1220" Height="800" MinWidth="760" MinHeight="520"
-        Icon="Assets/app.ico" WindowStartupLocation="CenterScreen">
+        Icon="Assets/app.ico" WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Ink}" Foreground="{StaticResource Text}" FontFamily="{StaticResource Mono}">
     <Window.InputBindings>
         <KeyBinding Key="Space" Modifiers="Ctrl" Command="{Binding Player.PlayPauseCommand}" />
         <KeyBinding Key="Right" Modifiers="Ctrl" Command="{Binding Player.NextCommand}" />
@@ -29,7 +30,7 @@
                         <Rectangle Width="14" Height="14" Fill="{StaticResource Rose}" Margin="0,0,10,0" />
                         <TextBlock Text="88.8FM" FontSize="20" FontWeight="Bold" />
                     </StackPanel>
-                    <TextBlock Text="{Binding TierText}" Style="{StaticResource Dim}" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding TierText}" Style="{StaticResource DimText}" Margin="0,6,0,0" TextWrapping="Wrap" />
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Top">
                     <Button Style="{StaticResource Nav}" Command="{Binding GoCatalogueCommand}" Content="Catalogue" />
@@ -87,8 +88,8 @@
                 </Button>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0">
                     <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" />
-                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Dim}" />
-                    <TextBlock Text="{Binding Meta}" Style="{StaticResource Dim}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource DimText}" />
+                    <TextBlock Text="{Binding Meta}" Style="{StaticResource DimText}" />
                     <TextBlock Text="PREVIEW" Foreground="{StaticResource Rose}" FontSize="10" FontWeight="Bold"
                                Visibility="{Binding IsPreview, Converter={StaticResource Vis}}" />
                 </StackPanel>
@@ -112,11 +113,11 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="48" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding PositionText}" Style="{StaticResource Dim}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding PositionText}" Style="{StaticResource DimText}" VerticalAlignment="Center" />
                         <Slider x:Name="Seek" Grid.Column="1" Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position, Mode=TwoWay}"
                                 Thumb.DragStarted="Seek_DragStarted" Thumb.DragCompleted="Seek_DragCompleted"
                                 PreviewMouseLeftButtonDown="Seek_PreviewMouseDown" PreviewMouseLeftButtonUp="Seek_PreviewMouseUp" />
-                        <TextBlock Grid.Column="2" Text="{Binding DurationText}" Style="{StaticResource Dim}" VerticalAlignment="Center" TextAlignment="Right" />
+                        <TextBlock Grid.Column="2" Text="{Binding DurationText}" Style="{StaticResource DimText}" VerticalAlignment="Center" TextAlignment="Right" />
                     </Grid>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">

@@ -6,7 +6,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Views/Theme.xaml" />
+                <!-- Pages merges Theme itself, so every lookup resolves while it loads. -->
                 <v:Pages />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
