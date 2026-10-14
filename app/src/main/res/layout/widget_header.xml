@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 88.8FM ............ zz 14:59  ● [ON AIR] -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:gravity="center_vertical" android:orientation="horizontal">
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="monospace"
+        android:letterSpacing="0.04" android:text="88.8FM" android:textColor="#C04A5E" android:textSize="12sp" android:textStyle="bold" />
+    <TextView android:id="@+id/w_band" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+        android:layout_marginStart="8dp" android:fontFamily="monospace" android:letterSpacing="0.1" android:maxLines="1"
+        android:text="STEREO" android:textColor="#5C5C5C" android:textSize="9sp" />
+    <TextView android:id="@+id/w_sleep" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp" android:fontFamily="monospace" android:text="zz"
+        android:textColor="#C04A5E" android:textSize="10sp" android:visibility="gone" />
+    <Chronometer android:id="@+id/w_sleep_time" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp" android:fontFamily="monospace" android:textColor="#C04A5E" android:textSize="10sp"
+        android:visibility="gone" />
+    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="6dp">
+        <ProgressBar android:id="@+id/w_lamp_on" android:layout_width="8dp" android:layout_height="8dp"
+            android:minWidth="8dp" android:maxWidth="8dp" android:minHeight="8dp" android:maxHeight="8dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+            android:indeterminateDrawable="@drawable/w_lamp_anim" android:visibility="gone" />
+        <ImageView android:id="@+id/w_lamp_off" android:layout_width="8dp" android:layout_height="8dp"
+            android:src="@drawable/w_lamp_off" android:contentDescription="@null" />
+    </FrameLayout>
+    <TextView android:id="@+id/w_onair" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:background="@drawable/w_sign_off" android:fontFamily="monospace" android:letterSpacing="0.14"
+        android:paddingStart="6dp" android:paddingTop="2dp" android:paddingEnd="5dp" android:paddingBottom="2dp"
+        android:text="ON AIR" android:textColor="#5C5C5C" android:textSize="9sp" android:textStyle="bold" />
+</LinearLayout>

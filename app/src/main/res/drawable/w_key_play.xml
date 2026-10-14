@@ -1,0 +1,5 @@
+<!-- The play key: 88.8 rose. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><shape><solid android:color="#FF8E3243" /><corners android:radius="9dp" /></shape></item>
+    <item android:bottom="1.5dp"><shape><gradient android:angle="270" android:startColor="#FFCF566B" android:endColor="#FFB8445A" /><corners android:radius="9dp" /></shape></item>
+</layer-list>

@@ -1,0 +1,4 @@
+<!-- Unlit, on 88.8 where it was left. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="320dp" android:height="34dp" android:viewportWidth="320" android:viewportHeight="34">
+                <path android:strokeColor="#5A4448" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M43.68,1.5V32.5" />
+</vector>

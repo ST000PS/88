@@ -1,6 +1,0 @@
-<!-- Paused: the needle resting on 88.8. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="240dp" android:height="24dp" android:viewportWidth="240" android:viewportHeight="24">
-                <path android:strokeColor="#40C04A5E" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M120,3L120,22" />
-                <path android:strokeColor="#C04A5E" android:strokeWidth="1.8" android:strokeLineCap="round" android:pathData="M120,1.5L120,23" />
-                <path android:fillColor="#C04A5E" android:pathData="M117,0L123,0L120,3.5Z" />
-</vector>

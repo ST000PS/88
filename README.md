@@ -36,23 +36,27 @@ headset controls)
 - Audio quality: Auto (by connection), 320, 160 or 64 kbps.
 
 **Home-screen widget, sleep timer, resume**
-- **Widget** (styled after the site: monospace, 88.8 red, FM radio):
+- **Widget**, designed as a piece of hi-fi gear (matte black body, ON AIR studio sign, hardware keys):
   - **Sizes:**
-    - **4×1 row:** art, title, a level meter, previous/play/next and a progress hairline.
-    - **Card:** adds an ON AIR lamp, a ticking timer with the sleep countdown, and an FM tuner strip.
-    - **Big card:** the cover becomes the label of a spinning record, ringed by the track's
-      progress, with "next ›", favourite and shuffle.
-  - **Motion** (only while playing):
-    - The tuner needle sweeps in and locks onto 88.8 on every new track, and whenever you come
-      back to the home screen.
-    - The record spins up like a turntable, then holds 33⅓ rpm.
-    - The level meter bounces at about the track's BPM.
-    - On Android 12+, play/pause morph and the heart pops the instant you tap them.
-  - **Colour:** the card takes its colour from the cover.
-  - **When the app is closed:** it shows the last track (dimmed) and today's listening, and the
-    needle parks off-station.
-  - **Per-widget settings:** long-press → settings to choose record or cover, motion on or still,
-    and cover colour or classic black.
+    - **4×1 row:** cover, title, a level meter, keys and a progress hairline.
+    - **Card:** adds the header, track time and an FM dial window.
+    - **Big card:** a hero up top, then the title, progress, a backlit FM/AM dial and five keys.
+      Wide widgets get a bigger hero.
+  - **The hero:**
+    - **Sampler pads (default):** a 4×4 MPC-style grid finger-drumming a two-bar boom-bap
+      pattern at about the track's BPM (Knxwledge is a beatmaker).
+    - **LCD:** beside the pads, it shows the cover, sequence (track) number, BPM, release and
+      time.
+    - **Other heroes:** a spinning record ringed by progress, or the plain cover.
+  - **The dial:**
+    - Printed FM and AM scales, backlit in the cover's colour.
+    - The needle scans down from 108 and locks onto 88.8 on every track, and whenever the home
+      screen comes back.
+  - **Motion:** it only moves while playing. Paused, the pads go dark and the needle rests; closed,
+    the backlights are off and it shows the last track and today's listening.
+  - **Android 12+:** play/pause morph and the heart pops on tap.
+  - **Per-widget settings** (long-press → settings): pads, record or cover; motion or still;
+    dial light from the cover or rose.
   - **Battery and data:** the animations are vectors the launcher runs. Covers reach the launcher
     as content:// links, so the once-a-second progress refresh (only with the screen on and music
     playing) sends a few hundred bytes.

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The dial window: a backlight (tinted from the cover), the printed scale, and the needle. The scale
+     and needle layers are one 36-high drawing stretched together, so the needle always sits on 88.8.
+     Two copies of the seek animation take turns, one per track, so each new track replays it. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="36dp" android:background="@drawable/w_glass">
+    <ImageView android:id="@+id/w_glow" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/w_glass_glow" android:contentDescription="@null" />
+    <ImageView android:id="@+id/w_scale_lit" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/w_scale_fm_lit" android:contentDescription="@null" android:visibility="gone" />
+    <ImageView android:id="@+id/w_scale_off" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/w_scale_fm_off" android:contentDescription="@null" />
+    <ProgressBar android:id="@+id/w_needle_a" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:minHeight="36dp" android:maxHeight="36dp" android:maxWidth="2000dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+        android:indeterminateDrawable="@drawable/w_scale_fm_needle_tune" android:visibility="gone" />
+    <ProgressBar android:id="@+id/w_needle_b" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:minHeight="36dp" android:maxHeight="36dp" android:maxWidth="2000dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+        android:indeterminateDrawable="@drawable/w_scale_fm_needle_tune" android:visibility="gone" />
+    <ImageView android:id="@+id/w_needle_on" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/w_scale_fm_needle" android:contentDescription="@null" android:visibility="gone" />
+    <ImageView android:id="@+id/w_needle_off" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:src="@drawable/w_scale_fm_needle_off" android:contentDescription="@null" />
+</FrameLayout>

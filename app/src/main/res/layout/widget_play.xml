@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ImageButton xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_play"
-    android:layout_width="48dp" android:layout_height="48dp" android:background="@drawable/widget_play_bg"
+    android:layout_width="56dp" android:layout_height="40dp" android:background="@drawable/w_key_play"
     android:src="@drawable/w_ic_play" android:contentDescription="Play or pause" />

@@ -1,6 +1,0 @@
-<!-- The FM scale around 88.8 MHz (the centre). Stretched to the widget's width, like the needle layer. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="240dp" android:height="24dp" android:viewportWidth="240" android:viewportHeight="24">
-    <path android:strokeColor="#33FFFFFF" android:strokeWidth="1" android:pathData="M0,22.5L240,22.5" />
-    <path android:strokeColor="#55FFFFFF" android:strokeWidth="1.2" android:pathData="M0,15L0,21M16,15L16,21M24,15L24,21M32,15L32,21M40,15L40,21M56,15L56,21M64,15L64,21M72,15L72,21M80,15L80,21M96,15L96,21M104,15L104,21M112,15L112,21M136,15L136,21M144,15L144,21M152,15L152,21M160,15L160,21M176,15L176,21M184,15L184,21M192,15L192,21M200,15L200,21M216,15L216,21M224,15L224,21M232,15L232,21M240,15L240,21" />
-    <path android:strokeColor="#A6FFFFFF" android:strokeWidth="1.6" android:pathData="M8,9L8,21M48,9L48,21M88,9L88,21M128,9L128,21M168,9L168,21M208,9L208,21" />
-</vector>

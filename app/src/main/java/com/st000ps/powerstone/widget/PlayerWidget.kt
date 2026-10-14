@@ -35,12 +35,16 @@ data class WidgetState(
     /** Cover and record-label files in [WidgetStore.dir], served by [WidgetArtProvider]. */
     val artName: String? = null,
     val labelName: String? = null,
-    /** The card's colour, taken from the cover. */
+    /** The dial's backlight colour, taken from the cover. */
     val tint: Int = DEFAULT_TINT,
     val hasTrack: Boolean = false,
     val fav: Boolean = false,
     val canFav: Boolean = false,
     val bpm: Int? = null,
+    /** For the sampler's LCD: artist, release, and the track number as the sequence. */
+    val artist: String = "",
+    val release: String = "",
+    val trackNo: Int? = null,
     /** Bumped on every track change: alternates which copy of the tuning animation shows, so it replays. */
     val tune: Int = 0,
     /** Track position: while playing, the elapsedRealtime at which the track was at 0:00; while paused, [positionMs]. */
@@ -91,8 +95,8 @@ class PlayerWidget : AppWidgetProvider() {
         private const val ACTION = "com.st000ps.powerstone.widget.ACTION"
         private const val EXTRA = "what"
         private const val RED = 0xFFC04A5E.toInt()
-        private const val GREY = 0xFF7A7A7A.toInt()
         private val TEMPOS = intArrayOf(70, 80, 90, 100, 115, 135)
+        private val PADS = intArrayOf(R.id.w_pads_70, R.id.w_pads_80, R.id.w_pads_90, R.id.w_pads_100, R.id.w_pads_115, R.id.w_pads_135)
         private val BARS = intArrayOf(R.id.w_bars_70, R.id.w_bars_80, R.id.w_bars_90, R.id.w_bars_100, R.id.w_bars_115, R.id.w_bars_135)
         /** Passed to MainActivity when the widget opens the app: "resume" or "shuffle". */
         const val EXTRA_WIDGET_ACTION = "widget_action"
@@ -134,13 +138,14 @@ class PlayerWidget : AppWidgetProvider() {
                 RemoteViews(
                     mapOf(
                         SizeF(180f, 40f) to build(context, R.layout.widget_small, o),
-                        SizeF(250f, 120f) to build(context, R.layout.widget_large, o),
-                        SizeF(250f, 230f) to build(context, R.layout.widget_tall, o),
+                        SizeF(250f, 165f) to build(context, R.layout.widget_large, o),
+                        SizeF(300f, 300f) to build(context, R.layout.widget_tall, o),
+                        SizeF(390f, 330f) to build(context, R.layout.widget_tall_wide, o),
                     ),
                 )
             } else {
                 val h = mgr.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 40)
-                build(context, if (h >= 230) R.layout.widget_tall else if (h >= 120) R.layout.widget_large else R.layout.widget_small, o)
+                build(context, if (h >= 300) R.layout.widget_tall else if (h >= 165) R.layout.widget_large else R.layout.widget_small, o)
             }
             mgr.updateAppWidget(id, views)
         }
@@ -151,21 +156,17 @@ class PlayerWidget : AppWidgetProvider() {
             val playing = live && s.playing
             val moving = playing && o.motion
             val small = layout == R.layout.widget_small
-            val tall = layout == R.layout.widget_tall
+            val tall = layout == R.layout.widget_tall || layout == R.layout.widget_tall_wide
             val art = s.artName?.let { artUri(context, it) }
             return RemoteViews(context.packageName, layout).apply {
-                // Card colour: the cover's, dimmed when the app is closed.
-                val tint = if (!o.coverColour || !s.hasTrack) WidgetState.DEFAULT_TINT else if (live) s.tint else blend(s.tint, WidgetState.DEFAULT_TINT, 0.5f)
-                setInt(R.id.w_bg, "setColorFilter", tint)
-
                 // Words.
                 setTextViewText(R.id.w_title, if (s.hasTrack) s.title else "88.8FM")
-                setTextColor(R.id.w_title, if (live) 0xFFEDEDED.toInt() else 0xFFBDBDBD.toInt())
+                setTextColor(R.id.w_title, if (live) 0xFFF2EDE6.toInt() else 0xFFA9A49C.toInt())
                 val idle = when {
-                    s.hasTrack && !live && s.todayMinutes > 0 -> "Tap play to resume · today ${s.todayMinutes} min"
-                    s.hasTrack && !live -> "Tap play to resume"
-                    s.todayMinutes > 0 -> "Today · ${s.todayMinutes} min on 88.8 · tap play"
-                    else -> "Tap play to tune in"
+                    s.hasTrack && !live && s.todayMinutes > 0 -> "Press play to resume · today ${s.todayMinutes} min"
+                    s.hasTrack && !live -> "Press play to resume"
+                    s.todayMinutes > 0 -> "Today · ${s.todayMinutes} min on 88.8 · press play"
+                    else -> "Press play to tune in"
                 }
                 setTextViewText(R.id.w_sub, if (live && s.hasTrack) s.subtitle else idle)
                 setViewVisibility(R.id.w_flip, if (playing) View.VISIBLE else View.GONE)
@@ -176,58 +177,65 @@ class PlayerWidget : AppWidgetProvider() {
                     setTextViewText(R.id.w_f3, s.upNext.ifEmpty { s.detail.ifEmpty { "thepowerstone.com" } })
                 }
 
-                // Pictures.
+                // Cover thumbnail (the big card hides it when the record or cover is the hero).
                 if (art != null) setImageViewUri(R.id.w_art, art) else setImageViewResource(R.id.w_art, R.mipmap.ic_launcher)
-                setInt(R.id.w_art, "setImageAlpha", if (live) 255 else 190)
+                setInt(R.id.w_art, "setImageAlpha", if (live) 255 else 170)
 
-                // Motion: each animation has a still twin for paused / closed / motion off.
+                // Level meter (row) and progress hairline.
                 val band = tempoBand(s.bpm)
                 BARS.forEachIndexed { i, v -> setViewVisibility(v, if (moving && i == band) View.VISIBLE else View.GONE) }
                 setViewVisibility(R.id.w_bars_off, if (moving) View.GONE else View.VISIBLE)
                 setProgressBar(R.id.w_line, 1000, if (live) s.progress() else 0, false)
-                setViewVisibility(R.id.w_line, if (live) View.VISIBLE else View.INVISIBLE)
 
                 if (!small) {
+                    // Header: lamp and the ON AIR sign.
                     pair(R.id.w_lamp_on, R.id.w_lamp_off, moving)
-                    setTextViewText(R.id.w_onair, if (playing) "ON AIR" else if (live) "PAUSED" else "OFF AIR")
-                    setTextColor(R.id.w_onair, if (playing) RED else GREY)
-                    // The needle: sweeping in and drifting / resting on 88.8 / parked off-station.
+                    setTextViewText(R.id.w_onair, if (playing || !live) "ON AIR" else "PAUSED")
+                    setInt(R.id.w_onair, "setBackgroundResource", if (playing) R.drawable.w_sign_on else R.drawable.w_sign_off)
+                    setTextColor(R.id.w_onair, if (playing) 0xFF0B0B0B.toInt() else 0xFF5C5C5C.toInt())
+                    setTextViewText(R.id.w_band, if (playing) "STEREO · 88.8 MHz" else if (live) "STEREO" else "")
+                    setTextColor(R.id.w_band, if (playing) 0xFF8E8A84.toInt() else 0xFF4A4A4A.toInt())
+
+                    // The dial window: backlight on while the app's up, needle seeking / resting / unlit.
+                    setInt(R.id.w_glow, "setColorFilter", if (o.coverColour && s.hasTrack) s.tint else RED)
+                    setInt(R.id.w_glow, "setImageAlpha", if (playing) 255 else if (live) 150 else 0)
+                    pair(R.id.w_scale_lit, R.id.w_scale_off, live)
                     setViewVisibility(R.id.w_needle_a, if (moving && s.tune % 2 == 0) View.VISIBLE else View.GONE)
                     setViewVisibility(R.id.w_needle_b, if (moving && s.tune % 2 == 1) View.VISIBLE else View.GONE)
                     setViewVisibility(R.id.w_needle_on, if (live && !moving) View.VISIBLE else View.GONE)
-                    setViewVisibility(R.id.w_needle_parked, if (live) View.GONE else View.VISIBLE)
+                    setViewVisibility(R.id.w_needle_off, if (live) View.GONE else View.VISIBLE)
                     timer(s, live, playing)
                     setOnClickPendingIntent(R.id.w_shuffle, if (live) command(context, "shuffle", 4) else openApp(context, "shuffle", 4))
                 }
 
                 if (tall) {
-                    setViewVisibility(R.id.w_record, if (o.record) View.VISIBLE else View.GONE)
-                    setViewVisibility(R.id.w_cover, if (o.record) View.GONE else View.VISIBLE)
-                    // The record has its own progress ring; the plain cover uses the hairline.
-                    if (o.record) setViewVisibility(R.id.w_line, View.GONE)
+                    val hero = o.hero
+                    setViewVisibility(R.id.w_sampler, if (hero == WidgetOptions.Hero.PADS) View.VISIBLE else View.GONE)
+                    setViewVisibility(R.id.w_record, if (hero == WidgetOptions.Hero.RECORD) View.VISIBLE else View.GONE)
+                    setViewVisibility(R.id.w_cover, if (hero == WidgetOptions.Hero.COVER) View.VISIBLE else View.GONE)
+                    // Every hero shows the cover big, so the title row drops its thumbnail.
+                    setViewVisibility(R.id.w_art, View.GONE)
+                    sampler(s, art, live, playing, moving, band)
+                    // Record.
                     pair(R.id.w_sheen_on, R.id.w_sheen_off, moving)
                     setProgressBar(R.id.w_ring, 1000, if (live) s.progress() else 0, false)
                     val label = s.labelName?.let { artUri(context, it) }
                     if (label != null) setImageViewUri(R.id.w_label, label) else setImageViewResource(R.id.w_label, R.drawable.w_label_blank)
-                    setViewVisibility(R.id.w_next_line, if (live && s.upNext.isNotEmpty()) View.VISIBLE else View.GONE)
-                    setTextViewText(R.id.w_next_line, s.upNext.uppercase())
                     if (art != null) setImageViewUri(R.id.w_cover, art) else setImageViewResource(R.id.w_cover, R.mipmap.ic_launcher)
-                    setTextViewText(R.id.w_freq, if (playing) "88.8 MHz · LOCKED" else "88.8 MHz")
 
-                    val showFav = live && s.canFav
-                    setViewVisibility(R.id.w_fav, if (showFav) View.VISIBLE else View.GONE)
-                    if (showFav) {
-                        if (Build.VERSION.SDK_INT >= 31) {
-                            setCompoundButtonChecked(R.id.w_fav, s.fav)
-                            setOnCheckedChangeResponse(R.id.w_fav, RemoteViews.RemoteResponse.fromPendingIntent(command(context, "fav", 5)))
-                        } else {
-                            setImageViewResource(R.id.w_fav, if (s.fav) R.drawable.w_heart_on else R.drawable.w_heart_off)
-                            setOnClickPendingIntent(R.id.w_fav, command(context, "fav", 5))
-                        }
+                    val canFav = live && s.canFav
+                    setBoolean(R.id.w_fav, "setEnabled", canFav)
+                    setFloat(R.id.w_fav, "setAlpha", if (canFav) 1f else 0.35f)
+                    if (Build.VERSION.SDK_INT >= 31) {
+                        setCompoundButtonChecked(R.id.w_fav, canFav && s.fav)
+                        if (canFav) setOnCheckedChangeResponse(R.id.w_fav, RemoteViews.RemoteResponse.fromPendingIntent(command(context, "fav", 5)))
+                    } else {
+                        setImageViewResource(R.id.w_fav, if (canFav && s.fav) R.drawable.w_heart_on else R.drawable.w_heart_off)
+                        if (canFav) setOnClickPendingIntent(R.id.w_fav, command(context, "fav", 5))
                     }
                 }
 
-                // Buttons. App not running: playing needs the app (Android won't let a widget start
+                // Keys. App not running: playing needs the app (Android won't let a widget start
                 // playback in the background), so they open it and resume the last session or shuffle.
                 val open = openApp(context, null, 0)
                 setOnClickPendingIntent(android.R.id.background, open)
@@ -235,6 +243,7 @@ class PlayerWidget : AppWidgetProvider() {
                 if (tall) {
                     setOnClickPendingIntent(R.id.w_record, open)
                     setOnClickPendingIntent(R.id.w_cover, open)
+                    setOnClickPendingIntent(R.id.w_sampler, open)
                 }
                 val start = openApp(context, if (s.hasTrack) "resume" else "shuffle", 1)
                 val playIntent = if (live) command(context, "play_pause", 1) else start
@@ -247,6 +256,31 @@ class PlayerWidget : AppWidgetProvider() {
                 }
                 setOnClickPendingIntent(R.id.w_next, if (live) command(context, "next", 2) else start)
                 setOnClickPendingIntent(R.id.w_prev, if (live) command(context, "previous", 3) else start)
+            }
+        }
+
+        /**
+         * The sampler: pads finger-drumming at about the track's tempo (one animation per tempo band),
+         * dark when paused; the LCD shows the cover, sequence (track) number, BPM, release and time,
+         * with its backlight off when the app is closed.
+         */
+        private fun RemoteViews.sampler(s: WidgetState, art: Uri?, live: Boolean, playing: Boolean, moving: Boolean, band: Int) {
+            PADS.forEachIndexed { i, v -> setViewVisibility(v, if (moving && i == band) View.VISIBLE else View.GONE) }
+            setViewVisibility(R.id.w_pads_rest, if (live && !moving) View.VISIBLE else View.GONE)
+            setViewVisibility(R.id.w_pads_off, if (live) View.GONE else View.VISIBLE)
+            setInt(R.id.w_lcd, "setBackgroundResource", if (live) R.drawable.w_lcd_on else R.drawable.w_lcd_off)
+            val ink = if (live) 0xFF1C2617.toInt() else 0xFF59644F.toInt()
+            listOf(R.id.w_lcd_seq, R.id.w_lcd_bpm, R.id.w_lcd_rel, R.id.w_lcd_state, R.id.w_lcd_time).forEach { setTextColor(it, ink) }
+            if (art != null) setImageViewUri(R.id.w_lcd_art, art) else setImageViewResource(R.id.w_lcd_art, R.mipmap.ic_launcher)
+            setInt(R.id.w_lcd_art, "setImageAlpha", if (live) 255 else 110)
+            setTextViewText(R.id.w_lcd_seq, "SEQ " + (s.trackNo?.let { "%02d".format(it) } ?: "--"))
+            setTextViewText(R.id.w_lcd_bpm, "BPM " + (s.bpm?.let { "%03d".format(it) } ?: "---"))
+            setTextViewText(R.id.w_lcd_rel, if (s.hasTrack) s.release.ifEmpty { s.artist }.uppercase() else "88.8FM")
+            setTextViewText(R.id.w_lcd_state, if (playing) "▶ PLAY" else if (live) "❚❚ PAUSED" else if (s.hasTrack) "■ STOP" else "READY")
+            setViewVisibility(R.id.w_lcd_time, if (live) View.VISIBLE else View.GONE)
+            if (live) {
+                val ticking = playing && s.startedAt > 0
+                setChronometer(R.id.w_lcd_time, if (ticking) s.startedAt else SystemClock.elapsedRealtime() - s.positionMs, null, ticking)
             }
         }
 
@@ -297,20 +331,25 @@ class PlayerWidget : AppWidgetProvider() {
             (Color.blue(a) * (1 - t) + Color.blue(b) * t).toInt(),
         )
 
-        /** A deep, muted version of the cover's average colour: each track changes the card's mood. */
+        /**
+         * The dial's backlight colour from the cover: the most colourful part of it, lifted to a glow.
+         * Grey or black-and-white covers fall back to 88.8 rose.
+         */
         fun tintFrom(art: Bitmap): Int {
-            val small = Bitmap.createScaledBitmap(art, 12, 12, true)
-            var r = 0L; var g = 0L; var b = 0L
-            for (y in 0 until 12) for (x in 0 until 12) {
-                val c = small.getPixel(x, y)
-                r += Color.red(c); g += Color.green(c); b += Color.blue(c)
+            val small = Bitmap.createScaledBitmap(art, 16, 16, true)
+            val hsv = FloatArray(3)
+            // Weight each pixel's hue by how colourful and bright it is.
+            var x = 0.0; var y = 0.0; var weight = 0.0
+            for (py in 0 until 16) for (px in 0 until 16) {
+                Color.colorToHSV(small.getPixel(px, py), hsv)
+                val wgt = (hsv[1] * hsv[2]).toDouble().let { it * it }
+                val rad = Math.toRadians(hsv[0].toDouble())
+                x += kotlin.math.cos(rad) * wgt; y += kotlin.math.sin(rad) * wgt; weight += wgt
             }
             if (small !== art) small.recycle()
-            val hsv = FloatArray(3)
-            Color.RGBToHSV((r / 144).toInt(), (g / 144).toInt(), (b / 144).toInt(), hsv)
-            hsv[1] = (hsv[1] * 0.9f).coerceAtMost(0.6f)
-            hsv[2] = 0.30f
-            return Color.HSVToColor(hsv)
+            if (weight / 256 < 0.02) return RED
+            val hue = ((Math.toDegrees(kotlin.math.atan2(y, x)) + 360) % 360).toFloat()
+            return Color.HSVToColor(floatArrayOf(hue, 0.62f, 1f))
         }
 
         /** The cover cut into a circle with a spindle hole, for the record label. */

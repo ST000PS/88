@@ -60,17 +60,18 @@ class WidgetConfigActivity : ComponentActivity() {
                         Text("88.8FM", style = MaterialTheme.typography.labelLarge, color = Rose)
                         Text("Widget", style = MaterialTheme.typography.headlineMedium)
                         Spacer(Modifier.height(24.dp))
-                        Choice("BIG CARD", "What sits beside the title when the widget is tall.") {
-                            Pill("RECORD", o.record) { set(o.copy(record = true)) }
-                            Pill("COVER", !o.record) { set(o.copy(record = false)) }
+                        Choice("BIG CARD", "What fills the top of the widget when it's tall.") {
+                            Pill("PADS", o.hero == WidgetOptions.Hero.PADS) { set(o.copy(hero = WidgetOptions.Hero.PADS)) }
+                            Pill("RECORD", o.hero == WidgetOptions.Hero.RECORD) { set(o.copy(hero = WidgetOptions.Hero.RECORD)) }
+                            Pill("COVER", o.hero == WidgetOptions.Hero.COVER) { set(o.copy(hero = WidgetOptions.Hero.COVER)) }
                         }
-                        Choice("MOTION", "Lamp, level meter, tuner needle and spinning record while music plays.") {
+                        Choice("MOTION", "Pads, ON AIR lamp, dial needle and record while music plays.") {
                             Pill("ON", o.motion) { set(o.copy(motion = true)) }
                             Pill("STILL", !o.motion) { set(o.copy(motion = false)) }
                         }
-                        Choice("COLOUR", "Tint the card with the cover's colour, or keep it black.") {
+                        Choice("DIAL LIGHT", "Backlight the dial in the cover's colour, or in 88.8 rose.") {
                             Pill("FROM COVER", o.coverColour) { set(o.copy(coverColour = true)) }
-                            Pill("CLASSIC", !o.coverColour) { set(o.copy(coverColour = false)) }
+                            Pill("ROSE", !o.coverColour) { set(o.copy(coverColour = false)) }
                         }
                         Spacer(Modifier.weight(1f))
                         Button(

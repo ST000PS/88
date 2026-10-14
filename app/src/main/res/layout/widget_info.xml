@@ -4,18 +4,18 @@
     android:layout_width="match_parent" android:layout_height="wrap_content">
     <TextView android:id="@+id/w_sub" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:ellipsize="end" android:fontFamily="monospace" android:maxLines="1"
-        android:textColor="#A8A8A8" android:textSize="11sp" />
+        android:textColor="#8E8A84" android:textSize="11sp" />
     <ViewFlipper android:id="@+id/w_flip" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:autoStart="true" android:flipInterval="4500" android:visibility="gone"
         android:inAnimation="@anim/w_in" android:outAnimation="@anim/w_out">
         <TextView android:id="@+id/w_f1" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:ellipsize="end" android:fontFamily="monospace" android:maxLines="1"
-            android:textColor="#A8A8A8" android:textSize="11sp" />
+            android:textColor="#8E8A84" android:textSize="11sp" />
         <TextView android:id="@+id/w_f2" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:ellipsize="end" android:fontFamily="monospace" android:maxLines="1"
-            android:textColor="#A8A8A8" android:textSize="11sp" />
+            android:textColor="#8E8A84" android:textSize="11sp" />
         <TextView android:id="@+id/w_f3" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:ellipsize="end" android:fontFamily="monospace" android:maxLines="1"
-            android:textColor="#A8A8A8" android:textSize="11sp" />
+            android:textColor="#8E8A84" android:textSize="11sp" />
     </ViewFlipper>
 </FrameLayout>

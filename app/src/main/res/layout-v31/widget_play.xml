@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+: a toggle, so play and pause morph into each other the moment it's tapped. -->
+<!-- Android 12+: a toggle, so play and pause morph into each other the moment it's pressed. -->
 <CheckBox xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_play"
-    android:layout_width="48dp" android:layout_height="48dp" android:background="@drawable/w_play_btn"
+    android:layout_width="56dp" android:layout_height="40dp" android:background="@drawable/w_key_play_toggle"
     android:button="@null" android:contentDescription="Play or pause" />

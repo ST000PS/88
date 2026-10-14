@@ -65,7 +65,7 @@ class WidgetRenderTest {
         return WidgetState(
             title = title, subtitle = "Knx. · HX.26", detail = "92 BPM · Am · track 4/12", upNext = "next › Wrkn",
             playing = true, artName = a, labelName = l, tint = PlayerWidget.tintFrom(art), hasTrack = true,
-            fav = true, canFav = true, bpm = bpm, startedAt = SystemClock.elapsedRealtime() - 102_000,
+            fav = true, canFav = true, bpm = bpm, artist = "Knx.", release = "HX.26", trackNo = 4, startedAt = SystemClock.elapsedRealtime() - 102_000,
             durationMs = 188_000,
         )
     }
@@ -80,6 +80,13 @@ class WidgetRenderTest {
         val w = (wDp * d).toInt(); val h = (hDp * d).toInt()
         v.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY))
         v.layout(0, 0, w, h)
+        // Run the animations ~1.6 s in (software drawing runs them on the main looper), so playing
+        // states show lit pads and a needle that has locked on, not their first frame.
+        if (s.playing && live) {
+            val scratch = Canvas(Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888))
+            v.draw(scratch)
+            repeat(40) { org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(40)); v.draw(scratch) }
+        }
         val pad = (16 * d).toInt()
         val bmp = Bitmap.createBitmap(w + pad * 2, h + pad * 2, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
@@ -94,7 +101,7 @@ class WidgetRenderTest {
         val dir = WidgetStore.dir(ctx)
         val art = android.graphics.BitmapFactory.decodeFile(File(dir, s.artName!!).path)
         val label = s.labelName?.let { android.graphics.BitmapFactory.decodeFile(File(dir, it).path) }
-        listOf(R.id.w_art, R.id.w_cover).forEach { (v.findViewById<View>(it) as? ImageView)?.setImageBitmap(art) }
+        listOf(R.id.w_art, R.id.w_cover, R.id.w_lcd_art).forEach { (v.findViewById<View>(it) as? ImageView)?.setImageBitmap(art) }
         (v.findViewById<View>(R.id.w_label) as? ImageView)?.setImageBitmap(label)
     }
 
@@ -112,16 +119,21 @@ class WidgetRenderTest {
 
     @Test fun drawEveryState() {
         val p = playing()
-        shot("1_tall_record_playing", R.layout.widget_tall, 380, 340, p)
-        shot("2_tall_cover_playing", R.layout.widget_tall, 380, 340, p, WidgetOptions(record = false))
-        shot("3_tall_paused_long_title", R.layout.widget_tall, 380, 340,
-            playing(title = "Never Been Better (Interlude for the Late Night Drive)").copy(playing = false, startedAt = 0, positionMs = 61_000))
-        shot("4_tall_closed", R.layout.widget_tall, 380, 340, p.copy(playing = false, todayMinutes = 47), live = false)
-        shot("5_tall_first_run", R.layout.widget_tall, 380, 340, WidgetState(), live = false)
-        shot("6_card_playing", R.layout.widget_large, 380, 180, p)
-        shot("7_card_classic_sleep", R.layout.widget_large, 380, 180, p.copy(sleepAt = System.currentTimeMillis() + 15 * 60_000), WidgetOptions(coverColour = false))
-        shot("8_row_playing", R.layout.widget_small, 380, 84, p)
-        shot("9_row_closed", R.layout.widget_small, 380, 84, p.copy(playing = false), live = false)
+        val hero = WidgetOptions.Hero.entries
+        shot("0_wide_pads_playing", R.layout.widget_tall_wide, 430, 440, p)
+        shot("1_tall_pads_playing", R.layout.widget_tall, 380, 400, p)
+        shot("2_tall_record_playing", R.layout.widget_tall, 380, 400, p, WidgetOptions(hero = hero[1]))
+        shot("3_tall_cover_paused_long_title", R.layout.widget_tall, 380, 400,
+            playing(title = "Never Been Better (Interlude for the Late Night Drive)").copy(playing = false, startedAt = 0, positionMs = 61_000),
+            WidgetOptions(hero = hero[2]))
+        shot("4_tall_pads_paused_sleep", R.layout.widget_tall, 380, 400,
+            p.copy(playing = false, startedAt = 0, positionMs = 61_000, sleepAt = System.currentTimeMillis() + 15 * 60_000))
+        shot("5_tall_closed", R.layout.widget_tall, 380, 400, p.copy(playing = false, todayMinutes = 47), live = false)
+        shot("6_tall_first_run", R.layout.widget_tall, 380, 400, WidgetState(), live = false)
+        shot("7_card_playing", R.layout.widget_large, 380, 200, p)
+        shot("8_card_rose_closed", R.layout.widget_large, 380, 200, p.copy(playing = false), WidgetOptions(coverColour = false), live = false)
+        shot("9_row_playing", R.layout.widget_small, 380, 84, p)
+        shot("10_row_closed", R.layout.widget_small, 380, 84, p.copy(playing = false), live = false)
         sheet()
         assertTrue(File(out, "all.png").length() > 0)
     }

@@ -12,13 +12,15 @@ import java.io.File
 
 /** How one widget looks; set from its settings screen (long-press the widget → settings). */
 data class WidgetOptions(
-    /** Big card: the cover as a spinning record's label, or the plain cover. */
-    val record: Boolean = true,
-    /** Animations while playing (lamp, meter, tuner needle, record). Off = still, progress only. */
+    /** What fills the big card: sampler pads drumming at the track's tempo, a spinning record, or the cover. */
+    val hero: Hero = Hero.PADS,
+    /** Animations while playing (pads, lamp, dial needle, record). Off = still, progress only. */
     val motion: Boolean = true,
-    /** Card colour from the cover, or the classic near-black. */
+    /** Dial backlight in the cover's colour, or 88.8 rose. */
     val coverColour: Boolean = true,
-)
+) {
+    enum class Hero { PADS, RECORD, COVER }
+}
 
 /**
  * What the widget needs to survive the app being closed (last track, its cover and colour) and each
@@ -33,7 +35,7 @@ object WidgetStore {
     fun options(context: Context, id: Int): WidgetOptions {
         val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return WidgetOptions(
-            record = p.getBoolean("record_$id", true),
+            hero = WidgetOptions.Hero.entries.getOrNull(p.getInt("hero_$id", 0)) ?: WidgetOptions.Hero.PADS,
             motion = p.getBoolean("motion_$id", true),
             coverColour = p.getBoolean("colour_$id", true),
         )
@@ -41,13 +43,13 @@ object WidgetStore {
 
     fun setOptions(context: Context, id: Int, o: WidgetOptions) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean("record_$id", o.record).putBoolean("motion_$id", o.motion).putBoolean("colour_$id", o.coverColour)
+            .putInt("hero_$id", o.hero.ordinal).putBoolean("motion_$id", o.motion).putBoolean("colour_$id", o.coverColour)
             .apply()
     }
 
     fun forget(context: Context, ids: IntArray) {
         val e = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-        ids.forEach { e.remove("record_$it").remove("motion_$it").remove("colour_$it") }
+        ids.forEach { e.remove("hero_$it").remove("motion_$it").remove("colour_$it") }
         e.apply()
     }
 
