@@ -69,10 +69,6 @@ class WidgetConfigActivity : ComponentActivity() {
                             Pill("ON", o.motion) { set(o.copy(motion = true)) }
                             Pill("STILL", !o.motion) { set(o.copy(motion = false)) }
                         }
-                        Choice("DIAL LIGHT", "Backlight the dial in the cover's colour, or in 88.8 rose.") {
-                            Pill("FROM COVER", o.coverColour) { set(o.copy(coverColour = true)) }
-                            Pill("ROSE", !o.coverColour) { set(o.copy(coverColour = false)) }
-                        }
                         Spacer(Modifier.weight(1f))
                         Button(
                             onClick = { setResult(Activity.RESULT_OK, result); finish() },

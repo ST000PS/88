@@ -1,7 +1,0 @@
-<!-- The LCD with its backlight off. -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item><shape><solid android:color="#FF050505" /><corners android:radius="7dp" /></shape></item>
-    <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
-        <shape><gradient android:angle="270" android:startColor="#FF3C4436" android:endColor="#FF30372B" /><corners android:radius="4dp" /></shape>
-    </item>
-</layer-list>

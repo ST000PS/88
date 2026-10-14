@@ -64,7 +64,7 @@ class WidgetRenderTest {
         val (a, l) = WidgetStore.saveArt(ctx, "test-cover", art, PlayerWidget.labelFrom(art))
         return WidgetState(
             title = title, subtitle = "Knx. · HX.26", detail = "92 BPM · Am · track 4/12", upNext = "next › Wrkn",
-            playing = true, artName = a, labelName = l, tint = PlayerWidget.tintFrom(art), hasTrack = true,
+            playing = true, artName = a, labelName = l, trackKey = "hx26/4", hasTrack = true,
             fav = true, canFav = true, bpm = bpm, artist = "Knx.", release = "HX.26", trackNo = 4, startedAt = SystemClock.elapsedRealtime() - 102_000,
             durationMs = 188_000,
         )
@@ -131,7 +131,7 @@ class WidgetRenderTest {
         shot("5_tall_closed", R.layout.widget_tall, 380, 400, p.copy(playing = false, todayMinutes = 47), live = false)
         shot("6_tall_first_run", R.layout.widget_tall, 380, 400, WidgetState(), live = false)
         shot("7_card_playing", R.layout.widget_large, 380, 200, p)
-        shot("8_card_rose_closed", R.layout.widget_large, 380, 200, p.copy(playing = false), WidgetOptions(coverColour = false), live = false)
+        shot("8_card_closed", R.layout.widget_large, 380, 200, p.copy(playing = false), live = false)
         shot("9_row_playing", R.layout.widget_small, 380, 84, p)
         shot("10_row_closed", R.layout.widget_small, 380, 84, p.copy(playing = false), live = false)
         sheet()

@@ -1,0 +1,2 @@
+<!-- Film grain over the whole widget, like knxwledge.com. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android" android:src="@drawable/w_grain_tile" android:tileMode="repeat" />

@@ -35,8 +35,6 @@ data class WidgetState(
     /** Cover and record-label files in [WidgetStore.dir], served by [WidgetArtProvider]. */
     val artName: String? = null,
     val labelName: String? = null,
-    /** The dial's backlight colour, taken from the cover. */
-    val tint: Int = DEFAULT_TINT,
     val hasTrack: Boolean = false,
     val fav: Boolean = false,
     val canFav: Boolean = false,
@@ -45,6 +43,8 @@ data class WidgetState(
     val artist: String = "",
     val release: String = "",
     val trackNo: Int? = null,
+    /** The track's id: seeds its sample-strip waveform, so a track always looks the same. */
+    val trackKey: String = "",
     /** Bumped on every track change: alternates which copy of the tuning animation shows, so it replays. */
     val tune: Int = 0,
     /** Track position: while playing, the elapsedRealtime at which the track was at 0:00; while paused, [positionMs]. */
@@ -69,9 +69,6 @@ data class WidgetState(
         return (pos * 1000 / durationMs).toInt().coerceIn(0, 1000)
     }
 
-    companion object {
-        val DEFAULT_TINT = Color.rgb(0x1C, 0x1C, 0x1E)
-    }
 }
 
 /**
@@ -94,9 +91,9 @@ class PlayerWidget : AppWidgetProvider() {
     companion object {
         private const val ACTION = "com.st000ps.powerstone.widget.ACTION"
         private const val EXTRA = "what"
-        private const val RED = 0xFFC04A5E.toInt()
         private val TEMPOS = intArrayOf(70, 80, 90, 100, 115, 135)
         private val PADS = intArrayOf(R.id.w_pads_70, R.id.w_pads_80, R.id.w_pads_90, R.id.w_pads_100, R.id.w_pads_115, R.id.w_pads_135)
+        private val SEQ = intArrayOf(R.id.w_seq_70, R.id.w_seq_80, R.id.w_seq_90, R.id.w_seq_100, R.id.w_seq_115, R.id.w_seq_135)
         private val BARS = intArrayOf(R.id.w_bars_70, R.id.w_bars_80, R.id.w_bars_90, R.id.w_bars_100, R.id.w_bars_115, R.id.w_bars_135)
         /** Passed to MainActivity when the widget opens the app: "resume" or "shuffle". */
         const val EXTRA_WIDGET_ACTION = "widget_action"
@@ -158,52 +155,47 @@ class PlayerWidget : AppWidgetProvider() {
             val small = layout == R.layout.widget_small
             val tall = layout == R.layout.widget_tall || layout == R.layout.widget_tall_wide
             val art = s.artName?.let { artUri(context, it) }
+            val band = tempoBand(s.bpm)
             return RemoteViews(context.packageName, layout).apply {
+                /** A line of Silkscreen text (drawn once, cached, shown pixel for pixel). */
+                fun px(id: Int, text: String, style: WidgetPixels.Style, maxDp: Int = 300) =
+                    setImageViewUri(id, artUri(context, WidgetPixels.text(context, text, style, maxDp)))
+
                 // Words.
-                setTextViewText(R.id.w_title, if (s.hasTrack) s.title else "88.8FM")
-                setTextColor(R.id.w_title, if (live) 0xFFF2EDE6.toInt() else 0xFFA9A49C.toInt())
+                val titleMax = if (small) 190 else 250
+                px(R.id.w_title, if (s.hasTrack) s.title else "88.8FM", if (live) WidgetPixels.Style.TITLE else WidgetPixels.Style.TITLE_IDLE, titleMax)
                 val idle = when {
-                    s.hasTrack && !live && s.todayMinutes > 0 -> "Press play to resume · today ${s.todayMinutes} min"
+                    s.hasTrack && !live && s.todayMinutes > 0 -> "Press play to resume / today ${s.todayMinutes} min"
                     s.hasTrack && !live -> "Press play to resume"
-                    s.todayMinutes > 0 -> "Today · ${s.todayMinutes} min on 88.8 · press play"
+                    s.todayMinutes > 0 -> "Today ${s.todayMinutes} min on 88.8 / press play"
                     else -> "Press play to tune in"
                 }
-                setTextViewText(R.id.w_sub, if (live && s.hasTrack) s.subtitle else idle)
                 setViewVisibility(R.id.w_flip, if (playing) View.VISIBLE else View.GONE)
                 setViewVisibility(R.id.w_sub, if (playing) View.GONE else View.VISIBLE)
                 if (playing) {
-                    setTextViewText(R.id.w_f1, s.subtitle)
-                    setTextViewText(R.id.w_f2, s.detail.ifEmpty { s.subtitle })
-                    setTextViewText(R.id.w_f3, s.upNext.ifEmpty { s.detail.ifEmpty { "thepowerstone.com" } })
+                    px(R.id.w_f1, s.subtitle, WidgetPixels.Style.BODY, titleMax)
+                    px(R.id.w_f2, s.detail.ifEmpty { s.subtitle }, WidgetPixels.Style.BODY, titleMax)
+                    px(R.id.w_f3, s.upNext.ifEmpty { s.detail.ifEmpty { "thepowerstone.com" } }, WidgetPixels.Style.BODY, titleMax)
+                } else {
+                    px(R.id.w_sub, if (live && s.hasTrack) s.subtitle else idle, if (live) WidgetPixels.Style.BODY else WidgetPixels.Style.DIM, titleMax)
                 }
 
-                // Cover thumbnail (the big card hides it when the record or cover is the hero).
+                // Cover thumbnail (the big card hides it: its hero shows the cover already).
                 if (art != null) setImageViewUri(R.id.w_art, art) else setImageViewResource(R.id.w_art, R.mipmap.ic_launcher)
-                setInt(R.id.w_art, "setImageAlpha", if (live) 255 else 170)
+                setInt(R.id.w_art, "setImageAlpha", if (live) 255 else 150)
 
-                // Level meter (row) and progress hairline.
-                val band = tempoBand(s.bpm)
+                // The site's visualizer (row) and the progress hairline.
                 BARS.forEachIndexed { i, v -> setViewVisibility(v, if (moving && i == band) View.VISIBLE else View.GONE) }
                 setViewVisibility(R.id.w_bars_off, if (moving) View.GONE else View.VISIBLE)
                 setProgressBar(R.id.w_line, 1000, if (live) s.progress() else 0, false)
 
                 if (!small) {
-                    // Header: lamp and the ON AIR sign.
-                    pair(R.id.w_lamp_on, R.id.w_lamp_off, moving)
-                    setTextViewText(R.id.w_onair, if (playing || !live) "ON AIR" else "PAUSED")
-                    setInt(R.id.w_onair, "setBackgroundResource", if (playing) R.drawable.w_sign_on else R.drawable.w_sign_off)
-                    setTextColor(R.id.w_onair, if (playing) 0xFF0B0B0B.toInt() else 0xFF5C5C5C.toInt())
-                    setTextViewText(R.id.w_band, if (playing) "STEREO · 88.8 MHz" else if (live) "STEREO" else "")
-                    setTextColor(R.id.w_band, if (playing) 0xFF8E8A84.toInt() else 0xFF4A4A4A.toInt())
-
-                    // The dial window: backlight on while the app's up, needle seeking / resting / unlit.
-                    setInt(R.id.w_glow, "setColorFilter", if (o.coverColour && s.hasTrack) s.tint else RED)
-                    setInt(R.id.w_glow, "setImageAlpha", if (playing) 255 else if (live) 150 else 0)
-                    pair(R.id.w_scale_lit, R.id.w_scale_off, live)
-                    setViewVisibility(R.id.w_needle_a, if (moving && s.tune % 2 == 0) View.VISIBLE else View.GONE)
-                    setViewVisibility(R.id.w_needle_b, if (moving && s.tune % 2 == 1) View.VISIBLE else View.GONE)
-                    setViewVisibility(R.id.w_needle_on, if (live && !moving) View.VISIBLE else View.GONE)
-                    setViewVisibility(R.id.w_needle_off, if (live) View.GONE else View.VISIBLE)
+                    // Header: 88.8FM, the live dot and ON AIR.
+                    px(R.id.w_px_brand, "88.8FM", WidgetPixels.Style.BRIGHT)
+                    pair(R.id.w_lamp_on, R.id.w_lamp_off, playing)
+                    px(R.id.w_px_onair, if (playing) "ON AIR" else if (live) "PAUSED" else "OFF AIR",
+                        if (playing) WidgetPixels.Style.LIVE else WidgetPixels.Style.DIM)
+                    sampleStrip(context, s, live, moving, band) { id, t, st -> px(id, t, st) }
                     timer(s, live, playing)
                     setOnClickPendingIntent(R.id.w_shuffle, if (live) command(context, "shuffle", 4) else openApp(context, "shuffle", 4))
                 }
@@ -213,9 +205,8 @@ class PlayerWidget : AppWidgetProvider() {
                     setViewVisibility(R.id.w_sampler, if (hero == WidgetOptions.Hero.PADS) View.VISIBLE else View.GONE)
                     setViewVisibility(R.id.w_record, if (hero == WidgetOptions.Hero.RECORD) View.VISIBLE else View.GONE)
                     setViewVisibility(R.id.w_cover, if (hero == WidgetOptions.Hero.COVER) View.VISIBLE else View.GONE)
-                    // Every hero shows the cover big, so the title row drops its thumbnail.
                     setViewVisibility(R.id.w_art, View.GONE)
-                    sampler(s, art, live, playing, moving, band)
+                    sampler(s, art, live, playing, moving, band) { id, t, st -> px(id, t, st, 140) }
                     // Record.
                     pair(R.id.w_sheen_on, R.id.w_sheen_off, moving)
                     setProgressBar(R.id.w_ring, 1000, if (live) s.progress() else 0, false)
@@ -238,7 +229,7 @@ class PlayerWidget : AppWidgetProvider() {
                 // Keys. App not running: playing needs the app (Android won't let a widget start
                 // playback in the background), so they open it and resume the last session or shuffle.
                 val open = openApp(context, null, 0)
-                setOnClickPendingIntent(android.R.id.background, open)
+                setOnClickPendingIntent(R.id.w_root, open)
                 setOnClickPendingIntent(R.id.w_art, open)
                 if (tall) {
                     setOnClickPendingIntent(R.id.w_record, open)
@@ -260,23 +251,50 @@ class PlayerWidget : AppWidgetProvider() {
         }
 
         /**
-         * The sampler: pads finger-drumming at about the track's tempo (one animation per tempo band),
-         * dark when paused; the LCD shows the cover, sequence (track) number, BPM, release and time,
-         * with its backlight off when the app is closed.
+         * The sample strip: this track as a sliced waveform with a rose playhead following progress,
+         * over a 16-step sequencer whose playhead walks the pads' groove once a bar at the track's tempo.
          */
-        private fun RemoteViews.sampler(s: WidgetState, art: Uri?, live: Boolean, playing: Boolean, moving: Boolean, band: Int) {
+        private fun RemoteViews.sampleStrip(
+            context: Context, s: WidgetState, live: Boolean, moving: Boolean, band: Int,
+            px: (Int, String, WidgetPixels.Style) -> Unit,
+        ) {
+            px(R.id.w_px_sample, "SAMPLE", WidgetPixels.Style.DIM)
+            px(R.id.w_px_chops, (s.bpm?.let { "%03d BPM / ".format(it) } ?: "") + "16 STEP", if (moving) WidgetPixels.Style.BODY else WidgetPixels.Style.DIM)
+            if (s.hasTrack && s.trackKey.isNotEmpty()) {
+                setImageViewUri(R.id.w_wave, artUri(context, WidgetPixels.wave(context, s.trackKey, s.bpm, s.durationMs)))
+                setInt(R.id.w_wave, "setImageAlpha", if (live) 255 else 90)
+                setViewVisibility(R.id.w_wave, View.VISIBLE)
+            } else {
+                setViewVisibility(R.id.w_wave, View.INVISIBLE)
+            }
+            setProgressBar(R.id.w_wave_pos, 1000, if (live) s.progress() else 0, false)
+            SEQ.forEachIndexed { i, v -> setViewVisibility(v, if (moving && i == band) View.VISIBLE else View.GONE) }
+            setViewVisibility(R.id.w_seq_rest, if (live && !moving) View.VISIBLE else View.GONE)
+            setViewVisibility(R.id.w_seq_off, if (live) View.GONE else View.VISIBLE)
+        }
+
+        /**
+         * The sampler: pads finger-drumming at about the track's tempo (one animation per tempo band),
+         * dark when paused; the display (Silkscreen) shows the cover, SEQ (track), BPM, release, state and time.
+         */
+        private fun RemoteViews.sampler(
+            s: WidgetState, art: Uri?, live: Boolean, playing: Boolean, moving: Boolean, band: Int,
+            px: (Int, String, WidgetPixels.Style) -> Unit,
+        ) {
             PADS.forEachIndexed { i, v -> setViewVisibility(v, if (moving && i == band) View.VISIBLE else View.GONE) }
             setViewVisibility(R.id.w_pads_rest, if (live && !moving) View.VISIBLE else View.GONE)
             setViewVisibility(R.id.w_pads_off, if (live) View.GONE else View.VISIBLE)
-            setInt(R.id.w_lcd, "setBackgroundResource", if (live) R.drawable.w_lcd_on else R.drawable.w_lcd_off)
-            val ink = if (live) 0xFF1C2617.toInt() else 0xFF59644F.toInt()
-            listOf(R.id.w_lcd_seq, R.id.w_lcd_bpm, R.id.w_lcd_rel, R.id.w_lcd_state, R.id.w_lcd_time).forEach { setTextColor(it, ink) }
             if (art != null) setImageViewUri(R.id.w_lcd_art, art) else setImageViewResource(R.id.w_lcd_art, R.mipmap.ic_launcher)
             setInt(R.id.w_lcd_art, "setImageAlpha", if (live) 255 else 110)
-            setTextViewText(R.id.w_lcd_seq, "SEQ " + (s.trackNo?.let { "%02d".format(it) } ?: "--"))
-            setTextViewText(R.id.w_lcd_bpm, "BPM " + (s.bpm?.let { "%03d".format(it) } ?: "---"))
-            setTextViewText(R.id.w_lcd_rel, if (s.hasTrack) s.release.ifEmpty { s.artist }.uppercase() else "88.8FM")
-            setTextViewText(R.id.w_lcd_state, if (playing) "▶ PLAY" else if (live) "❚❚ PAUSED" else if (s.hasTrack) "■ STOP" else "READY")
+            val ink = if (live) WidgetPixels.Style.BRIGHT else WidgetPixels.Style.DIM
+            px(R.id.w_lcd_seq, "SEQ " + (s.trackNo?.let { "%02d".format(it) } ?: "--"), ink)
+            px(R.id.w_lcd_bpm, "BPM " + (s.bpm?.let { "%03d".format(it) } ?: "---"), if (playing) WidgetPixels.Style.LIVE else ink)
+            px(R.id.w_lcd_rel, if (s.hasTrack) s.release.ifEmpty { s.artist } else "88.8FM", if (live) WidgetPixels.Style.BODY else WidgetPixels.Style.DIM)
+            px(R.id.w_lcd_next_k, "NEXT", WidgetPixels.Style.DIM)
+            px(R.id.w_lcd_next, if (live) s.upNext.removePrefix("next › ").ifEmpty { "--" } else "--",
+                if (live) WidgetPixels.Style.BODY else WidgetPixels.Style.DIM)
+            px(R.id.w_lcd_state, if (playing) "PLAY" else if (live) "PAUSED" else if (s.hasTrack) "STOP" else "READY",
+                if (playing) WidgetPixels.Style.LIVE else WidgetPixels.Style.DIM)
             setViewVisibility(R.id.w_lcd_time, if (live) View.VISIBLE else View.GONE)
             if (live) {
                 val ticking = playing && s.startedAt > 0
@@ -323,33 +341,6 @@ class PlayerWidget : AppWidgetProvider() {
         private fun clock(ms: Long): String {
             val t = ms / 1000
             return if (t >= 3600) "%d:%02d:%02d".format(t / 3600, t / 60 % 60, t % 60) else "%d:%02d".format(t / 60, t % 60)
-        }
-
-        private fun blend(a: Int, b: Int, t: Float): Int = Color.rgb(
-            (Color.red(a) * (1 - t) + Color.red(b) * t).toInt(),
-            (Color.green(a) * (1 - t) + Color.green(b) * t).toInt(),
-            (Color.blue(a) * (1 - t) + Color.blue(b) * t).toInt(),
-        )
-
-        /**
-         * The dial's backlight colour from the cover: the most colourful part of it, lifted to a glow.
-         * Grey or black-and-white covers fall back to 88.8 rose.
-         */
-        fun tintFrom(art: Bitmap): Int {
-            val small = Bitmap.createScaledBitmap(art, 16, 16, true)
-            val hsv = FloatArray(3)
-            // Weight each pixel's hue by how colourful and bright it is.
-            var x = 0.0; var y = 0.0; var weight = 0.0
-            for (py in 0 until 16) for (px in 0 until 16) {
-                Color.colorToHSV(small.getPixel(px, py), hsv)
-                val wgt = (hsv[1] * hsv[2]).toDouble().let { it * it }
-                val rad = Math.toRadians(hsv[0].toDouble())
-                x += kotlin.math.cos(rad) * wgt; y += kotlin.math.sin(rad) * wgt; weight += wgt
-            }
-            if (small !== art) small.recycle()
-            if (weight / 256 < 0.02) return RED
-            val hue = ((Math.toDegrees(kotlin.math.atan2(y, x)) + 360) % 360).toFloat()
-            return Color.HSVToColor(floatArrayOf(hue, 0.62f, 1f))
         }
 
         /** The cover cut into a circle with a spindle hole, for the record label. */

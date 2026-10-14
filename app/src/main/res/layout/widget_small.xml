@@ -1,35 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 4×1: cover, title over a level meter and the info line, three keys, and a progress hairline. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@drawable/w_body">
+<!-- 4×1: cover, title over the visualizer and info line, three keys, progress hairline. Square, grainy, Silkscreen. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/w_body">
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
         android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="10dp" android:paddingEnd="10dp">
-        <ImageView android:id="@+id/w_art" android:layout_width="44dp" android:layout_height="44dp"
-            android:background="@drawable/w_thumb" android:clipToOutline="true"
-            android:scaleType="centerCrop" android:src="@mipmap/ic_launcher" android:contentDescription="@null" />
+        <ImageView android:id="@+id/w_art" android:layout_width="44dp" android:layout_height="44dp" android:background="@drawable/w_thumb_frame"
+            android:padding="1dp" android:scaleType="centerCrop" android:src="@mipmap/ic_launcher" android:contentDescription="@null" />
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:layout_marginStart="10dp" android:orientation="vertical">
-            <TextView android:id="@+id/w_title" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:ellipsize="end" android:fontFamily="sans-serif-condensed" android:maxLines="1" android:text="@string/app_name"
-                android:textColor="#F2EDE6" android:textSize="15sp" android:textStyle="bold" />
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="1dp" android:gravity="center_vertical" android:orientation="horizontal">
-                <include layout="@layout/widget_bars" android:layout_width="20dp" android:layout_height="14dp"
-                    android:layout_marginEnd="6dp" />
+            <ImageView android:id="@+id/w_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginBottom="5dp"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                <include layout="@layout/widget_viz" android:layout_width="30dp" android:layout_height="14dp" android:layout_marginEnd="7dp" />
                 <include layout="@layout/widget_info" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout android:layout_width="wrap_content" android:layout_height="36dp" android:orientation="horizontal">
-            <ImageButton android:id="@+id/w_prev" android:layout_width="38dp" android:layout_height="match_parent"
+            <ImageButton android:id="@+id/w_prev" android:layout_width="36dp" android:layout_height="match_parent"
                 android:background="@drawable/w_key" android:src="@drawable/w_i_prev" android:contentDescription="Previous" />
-            <include layout="@layout/widget_play" android:layout_width="48dp" android:layout_height="match_parent"
+            <include layout="@layout/widget_play" android:layout_width="46dp" android:layout_height="match_parent"
                 android:layout_marginStart="5dp" android:layout_marginEnd="5dp" />
-            <ImageButton android:id="@+id/w_next" android:layout_width="38dp" android:layout_height="match_parent"
+            <ImageButton android:id="@+id/w_next" android:layout_width="36dp" android:layout_height="match_parent"
                 android:background="@drawable/w_key" android:src="@drawable/w_i_next" android:contentDescription="Next" />
         </LinearLayout>
     </LinearLayout>
     <include layout="@layout/widget_line" android:layout_width="match_parent" android:layout_height="2dp"
-        android:layout_gravity="bottom" android:layout_marginStart="64dp" android:layout_marginEnd="16dp"
-        android:layout_marginBottom="6dp" />
+        android:layout_gravity="bottom" android:layout_marginStart="64dp" android:layout_marginEnd="10dp" android:layout_marginBottom="6dp" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/w_grain" />
 </FrameLayout>

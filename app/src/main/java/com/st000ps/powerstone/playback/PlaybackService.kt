@@ -78,7 +78,6 @@ class PlaybackService : MediaSessionService() {
     }
     private var artUrl: String? = null
     private var artFiles: Pair<String, String>? = null
-    private var artTint = WidgetState.DEFAULT_TINT
     private var tune = 0
     private var todayMinutes = 0
     /** Moves the widget's progress ring once a second, while music plays and the screen is on. */
@@ -331,18 +330,17 @@ class PlaybackService : MediaSessionService() {
         val md = exo.mediaMetadata
         val url = md.artworkUri?.toString()
         if (url != artUrl) {
-            artUrl = url; artFiles = null; artTint = WidgetState.DEFAULT_TINT
+            artUrl = url; artFiles = null
             artJob?.cancel()
             if (url != null) artJob = scope.launch {
                 val result = imageLoader.execute(ImageRequest.Builder(this@PlaybackService).data(url).size(360).allowHardware(false).build())
                 val bmp = result.drawable?.toBitmap(360, 360) ?: return@launch
                 // Saved as files the launcher reads through a content:// link, so widget updates stay tiny.
-                val (files, tint) = withContext(Dispatchers.IO) {
-                    WidgetStore.saveArt(this@PlaybackService, url, bmp, PlayerWidget.labelFrom(bmp)) to PlayerWidget.tintFrom(bmp)
+                val files = withContext(Dispatchers.IO) {
+                    WidgetStore.saveArt(this@PlaybackService, url, bmp, PlayerWidget.labelFrom(bmp))
                 }
                 if (artUrl != url) return@launch
                 artFiles = files
-                artTint = tint
                 pushWidget()
             }
         }
@@ -367,11 +365,11 @@ class PlaybackService : MediaSessionService() {
             playing = playing,
             artName = artFiles?.first,
             labelName = artFiles?.second,
-            tint = artTint,
             bpm = found?.second?.bpm,
             artist = md.artist?.toString() ?: "",
             release = md.albumTitle?.toString() ?: "",
             trackNo = found?.second?.n,
+            trackKey = id ?: "",
             tune = tune,
             todayMinutes = todayMinutes,
             hasTrack = item != null,

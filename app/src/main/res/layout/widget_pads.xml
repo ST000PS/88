@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The hero: a sampler. A 4×4 pad grid that finger-drums a boom-bap pattern at about the track's tempo
-     (one animation per tempo band), beside an MPC-style LCD with the cover, sequence (track) number,
-     BPM, release and running time. Paused: pads dark, LCD says so. Closed: LCD backlight off. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_sampler"
-    android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
-    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:background="@drawable/w_pad_well" android:padding="7dp">
+<!-- The hero: a sampler. 4x4 pads finger-drumming a boom-bap pattern at about the track's tempo, beside a
+     display (Silkscreen) with the cover, SEQ (track), BPM, release, state and time. Fixed size so the
+     pads stay square. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_sampler" android:layout_width="wrap_content" android:layout_height="wrap_content"
+    android:orientation="horizontal">
+    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/w_panel" android:padding="6dp">
         <ProgressBar android:id="@+id/w_pads_70" android:layout_width="128dp" android:layout_height="128dp"
             android:minWidth="128dp" android:maxWidth="128dp" android:minHeight="128dp" android:maxHeight="128dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
             android:indeterminateDrawable="@drawable/w_pads_t70" android:visibility="gone" />
@@ -29,33 +28,28 @@
         <ImageView android:id="@+id/w_pads_off" android:layout_width="128dp" android:layout_height="128dp"
             android:src="@drawable/w_pads_off" android:contentDescription="@null" />
     </FrameLayout>
-    <LinearLayout android:id="@+id/w_lcd" android:layout_width="124dp" android:layout_height="match_parent"
-        android:layout_marginStart="10dp" android:background="@drawable/w_lcd_off" android:orientation="vertical"
-        android:paddingStart="11dp" android:paddingTop="10dp" android:paddingEnd="10dp" android:paddingBottom="9dp">
+    <LinearLayout android:id="@+id/w_lcd" android:layout_width="124dp" android:layout_height="match_parent" android:layout_marginStart="8dp"
+        android:background="@drawable/w_panel" android:orientation="vertical" android:padding="9dp">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-            <ImageView android:id="@+id/w_lcd_art" android:layout_width="40dp" android:layout_height="40dp"
-                android:scaleType="centerCrop" android:src="@mipmap/ic_launcher" android:contentDescription="@null" />
+            <ImageView android:id="@+id/w_lcd_art" android:layout_width="46dp" android:layout_height="46dp"
+                android:background="@drawable/w_thumb_frame" android:padding="1dp" android:scaleType="centerCrop" android:src="@mipmap/ic_launcher"
+                android:contentDescription="@null" />
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                 android:layout_marginStart="8dp" android:orientation="vertical">
-                <TextView android:id="@+id/w_lcd_seq" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:fontFamily="monospace" android:text="SEQ --" android:textColor="#FF1C2617" android:textSize="10sp" android:textStyle="bold" />
-                <TextView android:id="@+id/w_lcd_bpm" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:fontFamily="monospace" android:text="BPM ---" android:textColor="#FF1C2617" android:textSize="10sp" android:textStyle="bold" />
+                <ImageView android:id="@+id/w_lcd_seq" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" />
+                <ImageView android:id="@+id/w_lcd_bpm" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginTop="5dp"/>
+                <ImageView android:id="@+id/w_lcd_rel" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginTop="5dp"/>
             </LinearLayout>
         </LinearLayout>
-        <FrameLayout android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="7dp"
-            android:background="#401C2617" />
-        <TextView android:id="@+id/w_lcd_rel" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="6dp" android:ellipsize="end" android:fontFamily="monospace" android:maxLines="1"
-            android:textColor="#FF1C2617" android:textSize="10sp" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="9dp" android:background="#FF1A1A1A" />
+        <ImageView android:id="@+id/w_lcd_next_k" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginTop="8dp"/>
+        <ImageView android:id="@+id/w_lcd_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" android:layout_marginTop="4dp"/>
         <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical"
-            android:orientation="horizontal">
-            <TextView android:id="@+id/w_lcd_state" android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:fontFamily="monospace" android:textColor="#FF1C2617" android:textSize="10sp"
-                android:textStyle="bold" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+            <ImageView android:id="@+id/w_lcd_state" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:scaleType="fitStart" android:contentDescription="@null" />
             <Chronometer android:id="@+id/w_lcd_time" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:fontFamily="monospace" android:textColor="#FF1C2617" android:textSize="10sp" />
+                android:fontFamily="monospace" android:textColor="#FF8A8A8A" android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

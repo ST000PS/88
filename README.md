@@ -36,30 +36,32 @@ headset controls)
 - Audio quality: Auto (by connection), 320, 160 or 64 kbps.
 
 **Home-screen widget, sleep timer, resume**
-- **Widget**, designed as a piece of hi-fi gear (matte black body, ON AIR studio sign, hardware keys):
+- **Widget**, in knxwledge.com's own look:
+  - **Look:** near-black and square, with 1px `#222` hairlines and a film-grain layer. Text is in
+    Silkscreen, the pixel font his site uses (bundled under the SIL Open Font License, see
+    `assets/fonts/Silkscreen-OFL.txt`), with small Japanese sub-labels. The live dot pulses like the
+    site's.
   - **Sizes:**
-    - **4×1 row:** cover, title, a level meter, keys and a progress hairline.
-    - **Card:** adds the header, track time and an FM dial window.
-    - **Big card:** a hero up top, then the title, progress, a backlit FM/AM dial and five keys.
-      Wide widgets get a bigger hero.
+    - **4×1 row:** cover, title, the site's thin-bar visualizer, keys and a progress hairline.
+    - **Card:** adds the header, track time and the sample strip.
+    - **Big card:** a hero, then the title, the sample strip and five keys. Wide widgets get a
+      bigger hero.
   - **The hero:**
     - **Sampler pads (default):** a 4×4 MPC-style grid finger-drumming a two-bar boom-bap
-      pattern at about the track's BPM (Knxwledge is a beatmaker).
-    - **LCD:** beside the pads, it shows the cover, sequence (track) number, BPM, release and
-      time.
-    - **Other heroes:** a spinning record ringed by progress, or the plain cover.
-  - **The dial:**
-    - Printed FM and AM scales, backlit in the cover's colour.
-    - The needle scans down from 108 and locks onto 88.8 on every track, and whenever the home
-      screen comes back.
-  - **Motion:** it only moves while playing. Paused, the pads go dark and the needle rests; closed,
-    the backlights are off and it shows the last track and today's listening.
+      pattern at about the track's BPM.
+    - **Display:** beside the pads, it shows the cover, SEQ (track), BPM, release, next track,
+      state and time.
+    - **Other heroes:** a spinning record, or the plain cover.
+  - **The sample strip:** the track drawn as a sliced waveform, with transients at its tempo and
+    chop markers (stylised, and the same picture every time for a track). A rose playhead follows
+    progress, and a 16-step sequencer below walks the pads' groove once a bar.
+  - **Motion:** it only moves while playing. Paused, everything rests; closed, it shows the last
+    track and today's listening.
   - **Android 12+:** play/pause morph and the heart pops on tap.
-  - **Per-widget settings** (long-press → settings): pads, record or cover; motion or still;
-    dial light from the cover or rose.
-  - **Battery and data:** the animations are vectors the launcher runs. Covers reach the launcher
-    as content:// links, so the once-a-second progress refresh (only with the screen on and music
-    playing) sends a few hundred bytes.
+  - **Per-widget settings** (long-press → settings): pads, record or cover; motion or still.
+  - **How it's drawn:** widgets can only use system fonts, so the app renders the pixel text and
+    waveforms to small cached images. They reach the launcher as content:// links, like the
+    covers, so the once-a-second refresh (only with the screen on and music playing) stays tiny.
   - `WidgetRenderTest` draws every state to `app/build/widget-shots/`, and CI uploads them as
     **widget-renders**.
 - **Sleep timer** (moon button on the player): 15–90 minutes or the end of the current track. It

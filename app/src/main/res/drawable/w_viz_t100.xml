@@ -1,0 +1,71 @@
+<!-- knxwledge.com's visualizer (8 thin bars), bouncing once per beat at about 100 BPM. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector android:width="30dp" android:height="16dp" android:viewportWidth="30" android:viewportHeight="16">
+            <group android:name="v0" android:pivotY="16" android:scaleY="0.4"><path android:fillColor="#99F2F2F2" android:pathData="M0,0h2v16h-2z" /></group>
+            <group android:name="v1" android:pivotY="16" android:scaleY="0.7"><path android:fillColor="#99F2F2F2" android:pathData="M4,0h2v16h-2z" /></group>
+            <group android:name="v2" android:pivotY="16" android:scaleY="0.3"><path android:fillColor="#99F2F2F2" android:pathData="M8,0h2v16h-2z" /></group>
+            <group android:name="v3" android:pivotY="16" android:scaleY="0.9"><path android:fillColor="#99F2F2F2" android:pathData="M12,0h2v16h-2z" /></group>
+            <group android:name="v4" android:pivotY="16" android:scaleY="0.5"><path android:fillColor="#99F2F2F2" android:pathData="M16,0h2v16h-2z" /></group>
+            <group android:name="v5" android:pivotY="16" android:scaleY="0.65"><path android:fillColor="#99F2F2F2" android:pathData="M20,0h2v16h-2z" /></group>
+            <group android:name="v6" android:pivotY="16" android:scaleY="0.35"><path android:fillColor="#99F2F2F2" android:pathData="M24,0h2v16h-2z" /></group>
+            <group android:name="v7" android:pivotY="16" android:scaleY="0.8"><path android:fillColor="#99F2F2F2" android:pathData="M28,0h2v16h-2z" /></group>
+        </vector>
+    </aapt:attr>
+    <target android:name="v0">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.36" android:valueTo="0.65"
+                android:duration="300" android:startOffset="0" android:repeatCount="infinite" android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="v1">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.48" android:valueTo="0.95"
+                android:duration="300" android:startOffset="60" android:repeatCount="infinite" android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="v2">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.32" android:valueTo="0.55"
+                android:duration="300" android:startOffset="120" android:repeatCount="infinite" android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="v3">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.56" android:valueTo="1.00"
+                android:duration="300" android:startOffset="180" android:repeatCount="infinite" android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="v4">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.4" android:valueTo="0.75"
+                android:duration="300" android:startOffset="240" android:repeatCount="infinite" android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="v5">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.46" android:valueTo="0.90"
+                android:duration="300" android:startOffset="300" android:repeatCount="infinite" android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="v6">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.34" android:valueTo="0.60"
+                android:duration="300" android:startOffset="360" android:repeatCount="infinite" android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="v7">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.52" android:valueTo="1.00"
+                android:duration="300" android:startOffset="420" android:repeatCount="infinite" android:repeatMode="reverse"
+                android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+</animated-vector>

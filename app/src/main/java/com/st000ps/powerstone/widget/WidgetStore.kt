@@ -16,8 +16,6 @@ data class WidgetOptions(
     val hero: Hero = Hero.PADS,
     /** Animations while playing (pads, lamp, dial needle, record). Off = still, progress only. */
     val motion: Boolean = true,
-    /** Dial backlight in the cover's colour, or 88.8 rose. */
-    val coverColour: Boolean = true,
 ) {
     enum class Hero { PADS, RECORD, COVER }
 }
@@ -37,13 +35,12 @@ object WidgetStore {
         return WidgetOptions(
             hero = WidgetOptions.Hero.entries.getOrNull(p.getInt("hero_$id", 0)) ?: WidgetOptions.Hero.PADS,
             motion = p.getBoolean("motion_$id", true),
-            coverColour = p.getBoolean("colour_$id", true),
         )
     }
 
     fun setOptions(context: Context, id: Int, o: WidgetOptions) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putInt("hero_$id", o.hero.ordinal).putBoolean("motion_$id", o.motion).putBoolean("colour_$id", o.coverColour)
+            .putInt("hero_$id", o.hero.ordinal).putBoolean("motion_$id", o.motion)
             .apply()
     }
 
@@ -57,7 +54,7 @@ object WidgetStore {
     fun saveLast(context: Context, s: WidgetState) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString("title", s.title).putString("subtitle", s.subtitle)
-            .putString("art", s.artName).putString("label", s.labelName).putInt("tint", s.tint)
+            .putString("art", s.artName).putString("label", s.labelName)
             .putBoolean("hasTrack", s.hasTrack)
             .putInt("today", s.todayMinutes).putLong("todayDay", day())
             .apply()
@@ -72,7 +69,6 @@ object WidgetStore {
             subtitle = p.getString("subtitle", "") ?: "",
             artName = file("art"),
             labelName = file("label"),
-            tint = p.getInt("tint", WidgetState.DEFAULT_TINT),
             hasTrack = p.getBoolean("hasTrack", false),
             todayMinutes = if (p.getLong("todayDay", 0) == day()) p.getInt("today", 0) else 0,
         )

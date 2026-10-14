@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- knxwledge.com's visualizer: 8 thin bars, one bounce per beat (one animation per tempo band). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="30dp" android:layout_height="14dp">
+    <ProgressBar android:id="@+id/w_bars_70" android:layout_width="30dp" android:layout_height="14dp"
+        android:minWidth="30dp" android:maxWidth="30dp" android:minHeight="14dp" android:maxHeight="14dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+        android:indeterminateDrawable="@drawable/w_viz_t70" android:visibility="gone" />
+    <ProgressBar android:id="@+id/w_bars_80" android:layout_width="30dp" android:layout_height="14dp"
+        android:minWidth="30dp" android:maxWidth="30dp" android:minHeight="14dp" android:maxHeight="14dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+        android:indeterminateDrawable="@drawable/w_viz_t80" android:visibility="gone" />
+    <ProgressBar android:id="@+id/w_bars_90" android:layout_width="30dp" android:layout_height="14dp"
+        android:minWidth="30dp" android:maxWidth="30dp" android:minHeight="14dp" android:maxHeight="14dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+        android:indeterminateDrawable="@drawable/w_viz_t90" android:visibility="gone" />
+    <ProgressBar android:id="@+id/w_bars_100" android:layout_width="30dp" android:layout_height="14dp"
+        android:minWidth="30dp" android:maxWidth="30dp" android:minHeight="14dp" android:maxHeight="14dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+        android:indeterminateDrawable="@drawable/w_viz_t100" android:visibility="gone" />
+    <ProgressBar android:id="@+id/w_bars_115" android:layout_width="30dp" android:layout_height="14dp"
+        android:minWidth="30dp" android:maxWidth="30dp" android:minHeight="14dp" android:maxHeight="14dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+        android:indeterminateDrawable="@drawable/w_viz_t115" android:visibility="gone" />
+    <ProgressBar android:id="@+id/w_bars_135" android:layout_width="30dp" android:layout_height="14dp"
+        android:minWidth="30dp" android:maxWidth="30dp" android:minHeight="14dp" android:maxHeight="14dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+        android:indeterminateDrawable="@drawable/w_viz_t135" android:visibility="gone" />
+    <ImageView android:id="@+id/w_bars_off" android:layout_width="30dp" android:layout_height="14dp"
+        android:src="@drawable/w_viz_off" android:contentDescription="@null" />
+</FrameLayout>
