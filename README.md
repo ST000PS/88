@@ -36,19 +36,28 @@ headset controls)
 - Audio quality: Auto (by connection), 320, 160 or 64 kbps.
 
 **Home-screen widget, sleep timer, resume**
-- **Widget**:
-  - Three sizes:
-    - A 4×1 row: art, title, a level meter and previous/play/next.
-    - A card: an ON AIR lamp, a ticking track timer (plus the sleep countdown) and an FM tuner
-      strip whose needle drifts on 88.8.
-    - A big card: the cover becomes the label of a spinning record, with favourite and shuffle
-      buttons.
-  - The card takes its colour from the cover. While playing, the info line rotates between the
-    release, BPM / key / track number, and what's up next.
-  - It only animates while music plays. The animations are vectors run by the launcher, so the app
-    doesn't redraw anything.
-  - When the app isn't running it shows *Resume* or *Shuffle*. These open the app and start
-    playing, because Android doesn't let widgets start playback in the background.
+- **Widget** (styled after the site: monospace, 88.8 red, FM radio):
+  - **Sizes:**
+    - **4×1 row:** art, title, a level meter, previous/play/next and a progress hairline.
+    - **Card:** adds an ON AIR lamp, a ticking timer with the sleep countdown, and an FM tuner strip.
+    - **Big card:** the cover becomes the label of a spinning record, ringed by the track's
+      progress, with "next ›", favourite and shuffle.
+  - **Motion** (only while playing):
+    - The tuner needle sweeps in and locks onto 88.8 on every new track, and whenever you come
+      back to the home screen.
+    - The record spins up like a turntable, then holds 33⅓ rpm.
+    - The level meter bounces at about the track's BPM.
+    - On Android 12+, play/pause morph and the heart pops the instant you tap them.
+  - **Colour:** the card takes its colour from the cover.
+  - **When the app is closed:** it shows the last track (dimmed) and today's listening, and the
+    needle parks off-station.
+  - **Per-widget settings:** long-press → settings to choose record or cover, motion on or still,
+    and cover colour or classic black.
+  - **Battery and data:** the animations are vectors the launcher runs. Covers reach the launcher
+    as content:// links, so the once-a-second progress refresh (only with the screen on and music
+    playing) sends a few hundred bytes.
+  - `WidgetRenderTest` draws every state to `app/build/widget-shots/`, and CI uploads them as
+    **widget-renders**.
 - **Sleep timer** (moon button on the player): 15–90 minutes or the end of the current track. It
   pauses with the vinyl stop.
 - **Up next**: the queue on the player screen. Tap a track to jump to it.

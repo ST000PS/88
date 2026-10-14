@@ -5,25 +5,15 @@
     android:gravity="center_vertical" android:orientation="horizontal">
     <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
         <ProgressBar android:id="@+id/w_lamp_on" android:layout_width="10dp" android:layout_height="10dp"
-            android:minWidth="10dp" android:maxWidth="10dp" android:minHeight="10dp" android:maxHeight="10dp"
-            android:indeterminate="true" android:indeterminateOnly="true"
-            android:indeterminateDrawable="@drawable/w_lamp_anim"
-            android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply" android:visibility="gone" />
+            android:minWidth="10dp" android:maxWidth="10dp" android:minHeight="10dp" android:maxHeight="10dp" android:indeterminate="true" android:indeterminateOnly="true" android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply"
+            android:indeterminateDrawable="@drawable/w_lamp_anim" android:visibility="gone" />
         <ImageView android:id="@+id/w_lamp_off" android:layout_width="10dp" android:layout_height="10dp"
             android:src="@drawable/w_lamp_off" android:contentDescription="@null" />
     </FrameLayout>
     <TextView android:id="@+id/w_onair" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-        android:layout_marginStart="6dp" android:fontFamily="monospace" android:letterSpacing="0.12"
-        android:text="OFF AIR" android:textColor="#7A7A7A" android:textSize="10sp" android:textStyle="bold" />
-    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="8dp">
-        <ProgressBar android:id="@+id/w_bars_on" android:layout_width="20dp" android:layout_height="14dp"
-            android:minWidth="20dp" android:maxWidth="20dp" android:minHeight="14dp" android:maxHeight="14dp"
-            android:indeterminate="true" android:indeterminateOnly="true"
-            android:indeterminateDrawable="@drawable/w_bars_anim"
-            android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply" android:visibility="gone" />
-        <ImageView android:id="@+id/w_bars_off" android:layout_width="20dp" android:layout_height="14dp"
-            android:src="@drawable/w_bars_off" android:contentDescription="@null" />
-    </FrameLayout>
+        android:layout_marginStart="6dp" android:fontFamily="monospace" android:letterSpacing="0.12" android:maxLines="1"
+        android:ellipsize="end" android:text="OFF AIR" android:textColor="#7A7A7A" android:textSize="10sp" android:textStyle="bold" />
+    <include layout="@layout/widget_bars" android:layout_width="20dp" android:layout_height="14dp" android:layout_marginEnd="8dp" />
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="monospace"
         android:text="88.8FM" android:textColor="#C04A5E" android:textSize="10sp" android:textStyle="bold" />
 </LinearLayout>

@@ -1,0 +1,15 @@
+<!-- Track progress around the record. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="ring" android:innerRadiusRatio="2.12" android:thicknessRatio="48" android:useLevel="false">
+            <solid android:color="#1FFFFFFF" />
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <rotate android:fromDegrees="270" android:toDegrees="270" android:pivotX="50%" android:pivotY="50%">
+            <shape android:shape="ring" android:innerRadiusRatio="2.12" android:thicknessRatio="48" android:useLevel="true">
+                <solid android:color="#C04A5E" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>

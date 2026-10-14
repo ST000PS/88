@@ -1,16 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Card: ON AIR header, art beside title / info / timer, then the FM dial beside the transport. -->
+<!-- Card: art beside ON AIR / title / info / timer, a progress hairline, then the FM dial beside the transport. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent">
-    <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
-        android:scaleType="fitXY" android:src="@drawable/widget_fill" android:contentDescription="@null" />
-    <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
-        android:scaleType="fitXY" android:src="@drawable/widget_shade" android:contentDescription="@null" />
+    android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent">
+    <include layout="@layout/widget_bg" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
         android:orientation="vertical" android:padding="12dp">
         <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-            android:gravity="center_vertical" android:orientation="horizontal">
-            <ImageView android:id="@+id/w_art" android:layout_width="60dp" android:layout_height="60dp"
+            android:baselineAligned="false" android:gravity="center_vertical" android:orientation="horizontal">
+            <ImageView android:id="@+id/w_art" android:layout_width="64dp" android:layout_height="64dp"
                 android:background="@drawable/widget_art_bg" android:clipToOutline="true"
                 android:scaleType="centerCrop" android:src="@mipmap/ic_launcher" android:contentDescription="@null" />
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
@@ -23,6 +20,8 @@
                 <include layout="@layout/widget_time" />
             </LinearLayout>
         </LinearLayout>
+        <include layout="@layout/widget_line" android:layout_width="match_parent" android:layout_height="2dp"
+            android:layout_marginTop="8dp" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="6dp"
             android:gravity="center_vertical" android:orientation="horizontal">
             <FrameLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
@@ -33,8 +32,7 @@
                 android:background="@null" android:src="@drawable/ic_w_shuffle" android:contentDescription="Shuffle everything" />
             <ImageButton android:id="@+id/w_prev" android:layout_width="38dp" android:layout_height="38dp"
                 android:background="@null" android:src="@drawable/ic_w_prev" android:contentDescription="Previous" />
-            <ImageButton android:id="@+id/w_play" android:layout_width="44dp" android:layout_height="44dp"
-                android:background="@drawable/widget_play_bg" android:src="@drawable/ic_w_play" android:contentDescription="Play or pause" />
+            <include layout="@layout/widget_play" android:layout_width="44dp" android:layout_height="44dp" />
             <ImageButton android:id="@+id/w_next" android:layout_width="38dp" android:layout_height="38dp"
                 android:background="@null" android:src="@drawable/ic_w_next" android:contentDescription="Next" />
         </LinearLayout>

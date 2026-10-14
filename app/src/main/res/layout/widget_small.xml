@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 4×1: artwork, title, a level meter beside the rotating info line, previous / play / next. -->
+<!-- 4×1: artwork, title, a level meter beside the info line, previous / play / next, and a progress hairline. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent">
-    <ImageView android:id="@+id/w_bg" android:layout_width="match_parent" android:layout_height="match_parent"
-        android:scaleType="fitXY" android:src="@drawable/widget_fill" android:contentDescription="@null" />
-    <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
-        android:scaleType="fitXY" android:src="@drawable/widget_shade" android:contentDescription="@null" />
+    android:id="@android:id/background" android:layout_width="match_parent" android:layout_height="match_parent">
+    <include layout="@layout/widget_bg" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-        android:gravity="center_vertical" android:orientation="horizontal" android:padding="8dp">
+        android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="8dp" android:paddingEnd="6dp">
         <ImageView android:id="@+id/w_art" android:layout_width="48dp" android:layout_height="48dp"
             android:background="@drawable/widget_art_bg" android:clipToOutline="true"
             android:scaleType="centerCrop" android:src="@mipmap/ic_launcher" android:contentDescription="@null" />
@@ -18,23 +15,18 @@
                 android:textColor="#EDEDED" android:textSize="14sp" android:textStyle="bold" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="2dp" android:gravity="center_vertical" android:orientation="horizontal">
-                <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="6dp">
-                    <ProgressBar android:id="@+id/w_bars_on" android:layout_width="15dp" android:layout_height="12dp"
-                        android:minWidth="15dp" android:maxWidth="15dp" android:minHeight="12dp" android:maxHeight="12dp"
-                        android:indeterminate="true" android:indeterminateOnly="true"
-                        android:indeterminateDrawable="@drawable/w_bars_anim"
-                        android:indeterminateTint="#FFFFFFFF" android:indeterminateTintMode="multiply" android:visibility="gone" />
-                    <ImageView android:id="@+id/w_bars_off" android:layout_width="15dp" android:layout_height="12dp"
-                        android:src="@drawable/w_bars_off" android:contentDescription="@null" />
-                </FrameLayout>
+                <include layout="@layout/widget_bars" android:layout_width="20dp" android:layout_height="14dp"
+                    android:layout_marginEnd="6dp" />
                 <include layout="@layout/widget_info" />
             </LinearLayout>
         </LinearLayout>
         <ImageButton android:id="@+id/w_prev" android:layout_width="40dp" android:layout_height="40dp"
             android:background="@null" android:src="@drawable/ic_w_prev" android:contentDescription="Previous" />
-        <ImageButton android:id="@+id/w_play" android:layout_width="44dp" android:layout_height="44dp"
-            android:background="@drawable/widget_play_bg" android:src="@drawable/ic_w_play" android:contentDescription="Play or pause" />
+        <include layout="@layout/widget_play" android:layout_width="44dp" android:layout_height="44dp" />
         <ImageButton android:id="@+id/w_next" android:layout_width="40dp" android:layout_height="40dp"
             android:background="@null" android:src="@drawable/ic_w_next" android:contentDescription="Next" />
     </LinearLayout>
+    <include layout="@layout/widget_line" android:layout_width="match_parent" android:layout_height="2dp"
+        android:layout_gravity="bottom" android:layout_marginStart="18dp" android:layout_marginEnd="18dp"
+        android:layout_marginBottom="4dp" />
 </FrameLayout>

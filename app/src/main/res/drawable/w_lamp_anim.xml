@@ -2,22 +2,20 @@
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
     <aapt:attr name="android:drawable">
         <vector android:width="12dp" android:height="12dp" android:viewportWidth="12" android:viewportHeight="12">
-            <path android:name="halo" android:fillColor="#C04A5E" android:fillAlpha="0.25" android:pathData="M6,6m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+            <path android:name="halo" android:fillAlpha="0.25" android:fillColor="#C04A5E" android:pathData="M6,6m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
             <path android:name="dot" android:fillColor="#C04A5E" android:pathData="M6,6m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
         </vector>
     </aapt:attr>
     <target android:name="halo">
         <aapt:attr name="android:animation">
             <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.05" android:valueTo="0.45"
-                android:duration="1100" android:repeatCount="infinite" android:repeatMode="reverse"
-                android:interpolator="@android:interpolator/fast_out_slow_in" />
+                android:duration="1100" android:repeatCount="infinite" android:repeatMode="reverse" android:interpolator="@android:interpolator/fast_out_slow_in" />
         </aapt:attr>
     </target>
     <target android:name="dot">
         <aapt:attr name="android:animation">
             <objectAnimator android:propertyName="fillAlpha" android:valueFrom="0.55" android:valueTo="1"
-                android:duration="1100" android:repeatCount="infinite" android:repeatMode="reverse"
-                android:interpolator="@android:interpolator/fast_out_slow_in" />
+                android:duration="1100" android:repeatCount="infinite" android:repeatMode="reverse" android:interpolator="@android:interpolator/fast_out_slow_in" />
         </aapt:attr>
     </target>
 </animated-vector>

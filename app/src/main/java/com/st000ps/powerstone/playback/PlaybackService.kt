@@ -39,6 +39,7 @@ import com.st000ps.powerstone.data.trackId
 import com.st000ps.powerstone.ui.LockScreenActivity
 import com.st000ps.powerstone.widget.PlayerWidget
 import com.st000ps.powerstone.widget.WidgetState
+import com.st000ps.powerstone.widget.WidgetStore
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.Futures
@@ -51,6 +52,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Runs the player in the background so audio keeps going with the screen off,
@@ -75,9 +77,19 @@ class PlaybackService : MediaSessionService() {
         override fun run() { saveSession(); if (exo.isPlaying) handler.postDelayed(this, 10_000) }
     }
     private var artUrl: String? = null
-    private var art: android.graphics.Bitmap? = null
-    private var artLabel: android.graphics.Bitmap? = null
+    private var artFiles: Pair<String, String>? = null
     private var artTint = WidgetState.DEFAULT_TINT
+    private var tune = 0
+    private var todayMinutes = 0
+    /** Moves the widget's progress ring once a second, while music plays and the screen is on. */
+    private val widgetTick = object : Runnable {
+        override fun run() {
+            if (!exo.isPlaying) return
+            val power = getSystemService(android.os.PowerManager::class.java)
+            if (power?.isInteractive != false && PlayerWidget.ids(this@PlaybackService).isNotEmpty()) PlayerWidget.refresh(this@PlaybackService)
+            handler.postDelayed(this, 1000)
+        }
+    }
     private var artJob: Job? = null
     private var lastWidget: WidgetState? = null
     private lateinit var vinyl: VinylPlayer
@@ -116,8 +128,12 @@ class PlaybackService : MediaSessionService() {
             override fun onEvents(player: Player, events: Player.Events) {
                 pushWidget()
                 if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) updateButtons()
-                if (events.contains(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying) { handler.removeCallbacks(fadeTick); handler.post(fadeTick) }
+                if (events.contains(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying) {
+                    handler.removeCallbacks(fadeTick); handler.post(fadeTick)
+                    handler.removeCallbacks(widgetTick); handler.postDelayed(widgetTick, 1000)
+                }
                 if (events.contains(Player.EVENT_IS_PLAYING_CHANGED)) {
+                    if (!player.isPlaying) refreshToday()
                     handler.removeCallbacks(saveRunnable)
                     if (player.isPlaying) handler.postDelayed(saveRunnable, 10_000) else saveSession()
                 }
@@ -128,6 +144,7 @@ class PlaybackService : MediaSessionService() {
                 // Fade the new track in only when it followed on by itself (not a skip or a new queue).
                 fadeInStart = if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) SystemClock.elapsedRealtime() else 0L
                 updateFade()
+                tune++ // the widget's tuner needle sweeps in again
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -183,6 +200,7 @@ class PlaybackService : MediaSessionService() {
             })
             .build()
         instance = this
+        refreshToday()
         restoreSession()
         pushWidget()
         updateButtons()
@@ -295,20 +313,36 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    /** Minutes listened today, for the widget's resting line. */
+    private fun refreshToday() {
+        scope.launch {
+            val start = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            val ms = withContext(Dispatchers.IO) { app.history.all().filter { it.ts >= start }.sumOf { it.ms } }
+            todayMinutes = (ms / 60_000).toInt()
+            pushWidget()
+        }
+    }
+
     private fun pushWidget() {
         val item = exo.currentMediaItem
         val md = exo.mediaMetadata
         val url = md.artworkUri?.toString()
         if (url != artUrl) {
-            artUrl = url; art = null; artLabel = null; artTint = WidgetState.DEFAULT_TINT
+            artUrl = url; artFiles = null; artTint = WidgetState.DEFAULT_TINT
             artJob?.cancel()
             if (url != null) artJob = scope.launch {
-                val result = imageLoader.execute(ImageRequest.Builder(this@PlaybackService).data(url).size(200).allowHardware(false).build())
-                // Small on purpose: widget updates travel over Binder, which caps their size.
-                val bmp = result.drawable?.toBitmap(200, 200) ?: return@launch
-                art = bmp
-                artLabel = PlayerWidget.labelFrom(bmp)
-                artTint = PlayerWidget.tintFrom(bmp)
+                val result = imageLoader.execute(ImageRequest.Builder(this@PlaybackService).data(url).size(360).allowHardware(false).build())
+                val bmp = result.drawable?.toBitmap(360, 360) ?: return@launch
+                // Saved as files the launcher reads through a content:// link, so widget updates stay tiny.
+                val (files, tint) = withContext(Dispatchers.IO) {
+                    WidgetStore.saveArt(this@PlaybackService, url, bmp, PlayerWidget.labelFrom(bmp)) to PlayerWidget.tintFrom(bmp)
+                }
+                if (artUrl != url) return@launch
+                artFiles = files
+                artTint = tint
                 pushWidget()
             }
         }
@@ -331,9 +365,12 @@ class PlaybackService : MediaSessionService() {
             detail = detail,
             upNext = upNext,
             playing = playing,
-            art = art,
-            label = artLabel,
+            artName = artFiles?.first,
+            labelName = artFiles?.second,
             tint = artTint,
+            bpm = found?.second?.bpm,
+            tune = tune,
+            todayMinutes = todayMinutes,
             hasTrack = item != null,
             fav = id != null && id in app.favs.value,
             canFav = app.me.value.signedIn,
@@ -367,7 +404,7 @@ class PlaybackService : MediaSessionService() {
         }
         session = null
         scope.cancel()
-        PlayerWidget.update(this, PlayerWidget.state.copy(playing = false))
+        PlayerWidget.update(this, PlayerWidget.state(this).copy(playing = false))
         super.onDestroy()
     }
 

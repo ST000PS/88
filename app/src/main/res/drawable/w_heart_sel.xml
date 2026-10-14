@@ -1,0 +1,5 @@
+<animated-selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/w_s_fav" android:state_checked="true" android:drawable="@drawable/w_heart_on" />
+    <item android:id="@+id/w_s_nofav" android:drawable="@drawable/w_heart_off" />
+    <transition android:fromId="@id/w_s_nofav" android:toId="@id/w_s_fav" android:drawable="@drawable/w_heart_pop" />
+</animated-selector>

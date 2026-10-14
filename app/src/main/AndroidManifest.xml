@@ -6,6 +6,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- The widget grants the home screen app read access to its cover files. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+    </queries>
+
     <application
         android:name=".PowerstoneApp"
         android:allowBackup="false"
@@ -64,6 +72,23 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/player_widget_info" />
         </receiver>
+
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:label="88.8FM widget"
+            android:theme="@style/Theme.Powerstone">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name=".widget.WidgetArtProvider"
+            android:authorities="${applicationId}.widgetart"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <service
             android:name=".playback.PlaybackService"

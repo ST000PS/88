@@ -1,0 +1,21 @@
+<!-- Play ⇄ pause morph. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+            <path android:name="l" android:fillColor="#FFFFFFFF" android:pathData="M8,5L14,8.82L14,15.18L8,19Z" />
+            <path android:name="r" android:fillColor="#FFFFFFFF" android:pathData="M13.5,8.5L19,12L19,12L13.5,15.5Z" />
+        </vector>
+    </aapt:attr>
+    <target android:name="l">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="pathData" android:valueFrom="M8,5L14,8.82L14,15.18L8,19Z" android:valueTo="M7,5L10.75,5L10.75,19L7,19Z" android:valueType="pathType"
+                android:duration="260" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="r">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="pathData" android:valueFrom="M13.5,8.5L19,12L19,12L13.5,15.5Z" android:valueTo="M13.25,5L17,5L17,19L13.25,19Z" android:valueType="pathType"
+                android:duration="260" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+</animated-vector>

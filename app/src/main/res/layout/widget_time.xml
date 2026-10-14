@@ -6,7 +6,7 @@
     <Chronometer android:id="@+id/w_time" android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:fontFamily="monospace" android:textColor="#EDEDED" android:textSize="11sp" />
     <TextView android:id="@+id/w_dur" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:fontFamily="monospace" android:textColor="#7A7A7A" android:textSize="11sp" />
+        android:fontFamily="monospace" android:textColor="#8A8A8A" android:textSize="11sp" />
     <TextView android:id="@+id/w_sleep" android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:layout_marginStart="10dp" android:fontFamily="monospace" android:text="zz"
         android:textColor="#C04A5E" android:textSize="11sp" android:visibility="gone" />

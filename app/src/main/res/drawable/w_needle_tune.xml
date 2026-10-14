@@ -1,0 +1,34 @@
+<!-- Tuning in: the needle sweeps across from the left, settles on 88.8 with a little overshoot, then drifts like an analogue tuner. Plays on every track change and whenever the home screen comes back. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector android:width="240dp" android:height="24dp" android:viewportWidth="240" android:viewportHeight="24">
+            <group android:name="sweep" android:translateX="-100">
+                <group android:name="slow">
+                    <group android:name="fast">
+                <path android:strokeColor="#40C04A5E" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M120,3L120,22" />
+                <path android:strokeColor="#C04A5E" android:strokeWidth="1.8" android:strokeLineCap="round" android:pathData="M120,1.5L120,23" />
+                <path android:fillColor="#C04A5E" android:pathData="M117,0L123,0L120,3.5Z" />
+                    </group>
+                </group>
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="sweep">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="translateX" android:valueFrom="-100" android:valueTo="0"
+                android:duration="1100" android:interpolator="@android:interpolator/overshoot" />
+        </aapt:attr>
+    </target>
+    <target android:name="slow">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="translateX" android:valueFrom="-1.4" android:valueTo="1.4"
+                android:duration="2300" android:repeatCount="infinite" android:repeatMode="reverse" android:startOffset="1100" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+    <target android:name="fast">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="translateX" android:valueFrom="-0.4" android:valueTo="0.5"
+                android:duration="610" android:repeatCount="infinite" android:repeatMode="reverse" android:startOffset="1100" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+</animated-vector>

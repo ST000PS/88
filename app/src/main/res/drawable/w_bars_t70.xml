@@ -1,4 +1,4 @@
-<!-- A level meter bouncing while music plays (decorative: a widget can't read the audio). -->
+<!-- Level meter at about 70 BPM (decorative; picked from the track's tempo). -->
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
     <aapt:attr name="android:drawable">
         <vector android:width="20dp" android:height="16dp" android:viewportWidth="20" android:viewportHeight="16">
@@ -21,37 +21,32 @@
     </aapt:attr>
     <target android:name="b0">
         <aapt:attr name="android:animation">
-            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.25" android:valueTo="1"
-                android:duration="430" android:repeatCount="infinite" android:repeatMode="reverse"
-                android:interpolator="@android:interpolator/fast_out_slow_in" />
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1"
+                android:duration="214" android:repeatCount="infinite" android:repeatMode="reverse" android:interpolator="@android:interpolator/fast_out_linear_in" />
         </aapt:attr>
     </target>
     <target android:name="b1">
         <aapt:attr name="android:animation">
-            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.35" android:valueTo="1"
-                android:duration="570" android:repeatCount="infinite" android:repeatMode="reverse"
-                android:interpolator="@android:interpolator/fast_out_slow_in" />
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.45" android:valueTo="1"
+                android:duration="107" android:repeatCount="infinite" android:repeatMode="reverse" android:startOffset="107" android:interpolator="@android:interpolator/fast_out_linear_in" />
         </aapt:attr>
     </target>
     <target android:name="b2">
         <aapt:attr name="android:animation">
             <objectAnimator android:propertyName="scaleY" android:valueFrom="0.2" android:valueTo="1"
-                android:duration="370" android:repeatCount="infinite" android:repeatMode="reverse"
-                android:interpolator="@android:interpolator/fast_out_slow_in" />
+                android:duration="428" android:repeatCount="infinite" android:repeatMode="reverse" android:startOffset="214" android:interpolator="@android:interpolator/fast_out_linear_in" />
         </aapt:attr>
     </target>
     <target android:name="b3">
         <aapt:attr name="android:animation">
-            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.3" android:valueTo="1"
-                android:duration="650" android:repeatCount="infinite" android:repeatMode="reverse"
-                android:interpolator="@android:interpolator/fast_out_slow_in" />
+            <objectAnimator android:propertyName="scaleY" android:valueFrom="0.35" android:valueTo="1"
+                android:duration="214" android:repeatCount="infinite" android:repeatMode="reverse" android:startOffset="321" android:interpolator="@android:interpolator/fast_out_linear_in" />
         </aapt:attr>
     </target>
     <target android:name="b4">
         <aapt:attr name="android:animation">
             <objectAnimator android:propertyName="scaleY" android:valueFrom="0.4" android:valueTo="1"
-                android:duration="500" android:repeatCount="infinite" android:repeatMode="reverse"
-                android:interpolator="@android:interpolator/fast_out_slow_in" />
+                android:duration="107" android:repeatCount="infinite" android:repeatMode="reverse" android:startOffset="53" android:interpolator="@android:interpolator/fast_out_linear_in" />
         </aapt:attr>
     </target>
 </animated-vector>
