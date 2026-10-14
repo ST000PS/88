@@ -72,6 +72,10 @@ object Queue {
                 .filter { (r, t) -> trackId(r, t).let { id -> id !in heard && id !in picked && id !in avoid } }
             var p = pool()
             if (p.isEmpty()) { heard = emptySet(); app.settings.shuffleHeard = emptySet(); p = pool() }
+            if (p.isEmpty() && avoid.isNotEmpty()) {
+                // Everything is "avoided" (a very long shuffle): ignore that rather than stop.
+                p = rels.flatMap { r -> r.tracks.map { r to it } }.filter { (r, t) -> trackId(r, t) !in picked }
+            }
             if (p.isEmpty()) return out
             // pick a release first (each equally likely), then a track in it — same feel as the site
             val byRel = p.groupBy { it.first.id }

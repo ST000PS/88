@@ -96,7 +96,8 @@ class PlaybackService : MediaSessionService() {
             val remaining = player.mediaItemCount - 1 - player.currentMediaItemIndex
             when (Queue.kindOf(mediaItem)) {
                 QueueKind.SHUFFLE -> if (remaining < 3) {
-                    val inQueue = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                    // Avoid only what's recently queued; avoiding the whole queue would eventually exclude everything.
+                    val inQueue = (maxOf(0, player.mediaItemCount - 50) until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
                     val more = Queue.smartShuffle(app, 50, inQueue).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.SHUFFLE) }
                     player.addMediaItems(more)
                 }
