@@ -1,4 +1,4 @@
-name: Android build
+name: Build
 
 on:
   push:
@@ -44,3 +44,29 @@ jobs:
         with:
           name: reports
           path: app/build/reports/
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Unit tests
+        run: dotnet test windows/tests/Powerstone.Core.Tests -c Release
+
+      - name: Publish single-file exe
+        run: >
+          dotnet publish windows/src/Powerstone.Windows -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+          -o windows/out
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: 88.8FM-windows-x64
+          path: windows/out/88.8FM.exe
+          if-no-files-found: error

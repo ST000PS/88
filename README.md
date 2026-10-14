@@ -1,5 +1,7 @@
 # 88.8FM for Android
 
+> There's also a native **Windows** app in [`windows/`](windows/README.md).
+
 A personal native Android client for [thepowerstone.com](https://thepowerstone.com), the 88.8FM
 Knxwledge catalogue. It talks to the same JSON API the website uses. You sign in with your own
 account, and the server decides what you can hear: guests get the 28-second previews, and
