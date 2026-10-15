@@ -111,5 +111,15 @@
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
+
+        <!-- The Pixel Watch app's commands and sign-in requests (Wearable Data Layer). -->
+        <service
+            android:name=".wear.PhoneWearService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/88/" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

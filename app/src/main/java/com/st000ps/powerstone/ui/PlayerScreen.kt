@@ -163,7 +163,7 @@ private fun PlayerHeader(state: UiState, vm: AppViewModel, close: () -> Unit, op
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = close) { Icon(Icons.Filled.KeyboardArrowDown, "Close") }
         Text(
-            when (now.kind) { QueueKind.SHUFFLE -> "SHUFFLE"; QueueKind.ALBUM -> "ALBUM"; else -> "NOW PLAYING" },
+            when (now.kind) { QueueKind.SHUFFLE -> "SHUFFLE"; QueueKind.ALBUM -> "ALBUM"; QueueKind.RADIO -> "HEART RATE RADIO"; else -> "NOW PLAYING" },
             style = MaterialTheme.typography.labelMedium, color = Dim, modifier = Modifier.weight(1f),
         )
         if (now.video != null) IconButton(onClick = { vm.setVideoOn(!state.videoOn) }) {

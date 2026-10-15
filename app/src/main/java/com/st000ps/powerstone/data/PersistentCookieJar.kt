@@ -52,6 +52,20 @@ class PersistentCookieJar(context: Context) : CookieJar {
     override fun loadForRequest(url: HttpUrl): List<Cookie> =
         cookies.values.filter { it.matches(url) }
 
+    /** The site's cookies as Set-Cookie strings, handed to the watch app so it shares this sign-in. */
+    @Synchronized
+    fun export(): List<String> = cookies.values.map(::serialize)
+
+    /** Replaces the jar with cookies exported by [export] on the other device. */
+    @Synchronized
+    fun import(raw: List<String>) {
+        clear()
+        val base = HttpUrl.Builder().scheme("https").host(Api.HOST).build()
+        val edit = prefs.edit()
+        raw.mapNotNull { Cookie.parse(base, it) }.forEach { c -> cookies[key(c)] = c; edit.putString(key(c), serialize(c)) }
+        edit.apply()
+    }
+
     @Synchronized
     fun clear() {
         cookies.clear()

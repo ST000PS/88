@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Powerstone"
 include(":app")
+include(":wear")
