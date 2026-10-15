@@ -82,6 +82,9 @@ private val Rose = Color(0xFFC04A5E)
 private val Dim = Color(0xFF9A9A9A)
 private val White = Color(0xFFF2F2F2)
 
+/** Crown travel (pixels) per volume step. */
+private const val CROWN_STEP = 60f
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -158,10 +161,34 @@ private fun WatchUi() {
         }
     }
 
+    // The crown is volume (watch or phone, whichever is the target) everywhere except the EQ page.
+    val audio = remember { ctx.getSystemService(android.media.AudioManager::class.java) }
+    fun volume(up: Boolean) {
+        when (target) {
+            Target.WATCH -> audio.adjustStreamVolume(
+                android.media.AudioManager.STREAM_MUSIC,
+                if (up) android.media.AudioManager.ADJUST_RAISE else android.media.AudioManager.ADJUST_LOWER,
+                android.media.AudioManager.FLAG_SHOW_UI,
+            )
+            Target.PHONE -> scope.launch { app.link.send(if (up) WearProtocol.VOLUME_UP else WearProtocol.VOLUME_DOWN) }
+        }
+    }
+    var crown by remember { mutableStateOf(0f) }
+    val focus = remember { List(3) { FocusRequester() } }
+
     val pager = rememberPagerState { 3 }
+    LaunchedEffect(pager.currentPage) { if (pager.currentPage != 1) runCatching { focus[pager.currentPage].requestFocus() } }
     Box(Modifier.fillMaxSize().background(Ink)) {
         HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            val crownVolume = if (page == 1) Modifier else Modifier
+                .onRotaryScrollEvent { e ->
+                    crown += e.verticalScrollPixels
+                    while (crown >= CROWN_STEP) { crown -= CROWN_STEP; volume(up = true) }
+                    while (crown <= -CROWN_STEP) { crown += CROWN_STEP; volume(up = false) }
+                    true
+                }
+                .focusRequester(focus[page]).focusable()
+            Box(Modifier.fillMaxSize().then(crownVolume), contentAlignment = Alignment.Center) {
                 when (page) {
                     0 -> NowPage(now, target, { app.target.value = it }, ::command)
                     1 -> EqPage(phone?.eq, target, pager.currentPage == 1) { scope.launch { app.link.send(WearProtocol.EQ_PREFIX + app.api.json.encodeToString(Eq.serializer(), it)) } }

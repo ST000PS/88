@@ -31,6 +31,15 @@ class PhoneWearService : WearableListenerService() {
         when (event.path) {
             WearProtocol.CMD -> {
                 val cmd = String(event.data, Charsets.UTF_8)
+                if (cmd == WearProtocol.VOLUME_UP || cmd == WearProtocol.VOLUME_DOWN) {
+                    // The watch's crown: the phone's media volume, without starting playback.
+                    getSystemService(android.media.AudioManager::class.java).adjustStreamVolume(
+                        android.media.AudioManager.STREAM_MUSIC,
+                        if (cmd == WearProtocol.VOLUME_UP) android.media.AudioManager.ADJUST_RAISE else android.media.AudioManager.ADJUST_LOWER,
+                        0,
+                    )
+                    return
+                }
                 scope.launch { withPlayback { service -> run(service, cmd) } }
             }
             WearProtocol.SESSION_REQUEST -> scope.launch {

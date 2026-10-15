@@ -37,6 +37,8 @@ object WearProtocol {
     const val PREVIOUS = "previous"
     const val TOGGLE_FAV = "fav"
     const val SHUFFLE = "shuffle"
+    const val VOLUME_UP = "vol_up"
+    const val VOLUME_DOWN = "vol_down"
     const val EQ_PREFIX = "eq:"          // + EqState JSON
     const val RADIO_PREFIX = "radio:"    // + bpm, or "off"
 }
