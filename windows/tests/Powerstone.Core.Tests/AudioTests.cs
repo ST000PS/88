@@ -1,0 +1,281 @@
+using NAudio.Wave;
+using Powerstone.Core;
+using Powerstone.Core.Audio;
+
+namespace Powerstone.Core.Tests;
+
+/// <summary>Stereo sine source with a known number of frames.</summary>
+internal sealed class Sine(double freq, int frames, int rate = 44100, float amp = 0.5f) : ISampleProvider
+{
+    private int _i;
+    public WaveFormat WaveFormat { get; } = WaveFormat.CreateIeeeFloatWaveFormat(rate, 2);
+    public int Consumed => _i;
+    public int Read(float[] buffer, int offset, int count)
+    {
+        var n = 0;
+        while (n + 2 <= count && _i < frames)
+        {
+            var v = amp * (float)Math.Sin(2 * Math.PI * freq * _i / WaveFormat.SampleRate);
+            buffer[offset + n] = v; buffer[offset + n + 1] = v;
+            n += 2; _i++;
+        }
+        return n;
+    }
+}
+
+public class AudioTests
+{
+    private static float[] ReadAll(ISampleProvider p, int frames)
+    {
+        var all = new float[frames * 2];
+        var done = 0;
+        while (done < all.Length)
+        {
+            var n = p.Read(all, done, Math.Min(4096, all.Length - done));
+            if (n == 0) break;
+            done += n;
+        }
+        return all[..done];
+    }
+
+    private static double Rms(float[] x, int from) => Math.Sqrt(x.Skip(from).Where((_, i) => i % 2 == 0).Average(v => (double)v * v));
+
+    private static double EqGain(double freq, EqState eq)
+    {
+        var g = new EqGains(); g.Apply(eq);
+        var outp = ReadAll(new DjEqSampleProvider(new Sine(freq, 44100), g), 44100);
+        var inp = ReadAll(new Sine(freq, 44100), 44100);
+        var tail = outp.Length * 3 / 4;
+        return Rms(outp, tail) / Rms(inp, tail);
+    }
+
+    [Theory]
+    [InlineData(60)] [InlineData(1000)] [InlineData(8000)]
+    public void FlatEqIsUnity(double f) => Assert.InRange(EqGain(f, new EqState()), 0.85, 1.15);
+
+    [Fact]
+    public void KillMidRemovesMidrangeOnly()
+    {
+        Assert.True(EqGain(1000, new EqState(Kill: new[] { "mid" })) < 0.1);
+        Assert.True(EqGain(60, new EqState(Kill: new[] { "mid" })) > 0.85);
+    }
+
+    [Fact]
+    public void IsoLoKeepsOnlyBass()
+    {
+        Assert.True(EqGain(60, new EqState(Solo: "lo")) > 0.85);
+        Assert.True(EqGain(8000, new EqState(Solo: "lo")) < 0.05);
+    }
+
+    [Fact]
+    public void EqGainRulesMatchTheSite()
+    {
+        var eq = new EqState(Lo: 1.2f, Mid: 0.5f, Kill: new[] { "hi" });
+        Assert.Equal(1.2f, eq.Gain("lo"));
+        Assert.Equal(0f, eq.Gain("hi"));
+        var iso = eq.ToggleSolo("mid");
+        Assert.Equal(0.6f, iso.Gain("mid"));
+        Assert.Equal(0f, iso.Gain("lo"));
+        Assert.False(eq.ToggleKill("hi").IsKilled("hi"));
+    }
+
+    [Fact]
+    public void TurntablePassesThroughUntouched()
+    {
+        var a = ReadAll(new TurntableSampleProvider(new Sine(440, 10000)), 10000);
+        var b = ReadAll(new Sine(440, 10000), 10000);
+        Assert.Equal(b, a);
+    }
+
+    [Fact]
+    public void BrakeSlowsDownThenGoesSilentAndSignals()
+    {
+        var src = new Sine(440, 44100 * 10);
+        var tt = new TurntableSampleProvider(src);
+        var stopped = 0;
+        tt.Stopped += () => stopped++;
+        ReadAll(tt, 4410); // play 0.1 s normally
+        tt.Brake(0.9);
+        var before = src.Consumed;
+        var ramp = ReadAll(tt, 44100); // 1 s of output covers the 0.9 s ramp
+        Assert.Equal(1, stopped);
+        Assert.True(tt.IsStopped);
+        // Slowing down consumes far less source than real time (the record is winding down).
+        var used = src.Consumed - before;
+        Assert.InRange(used, 0.2 * 0.9 * 44100, 0.75 * 0.9 * 44100);
+        // Last stretch of output is silence.
+        Assert.All(ramp[^2000..], v => Assert.Equal(0f, v));
+    }
+
+    [Fact]
+    public void SpinUpReturnsToNormalSpeed()
+    {
+        var src = new Sine(440, 44100 * 10);
+        var tt = new TurntableSampleProvider(src);
+        tt.Brake(0.45);
+        ReadAll(tt, 44100);
+        tt.SpinUp();
+        ReadAll(tt, 44100); // ramp 0.22 s then normal
+        var before = src.Consumed;
+        ReadAll(tt, 44100);
+        // Back at 1×: one second of output consumes one second of source.
+        Assert.InRange(src.Consumed - before, 44100 - 1100, 44100 + 1100);
+        Assert.False(tt.IsStopped);
+    }
+
+    [Fact]
+    public void SequencerContinuesGaplesslyIntoTheNextTrack()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat);
+        var second = new Sine(440, 1000);
+        seq.SetTrack(new Sine(440, 1000));
+        var handedOut = 0;
+        seq.NextReady = () => handedOut++ == 0 ? new SequencerTrack(second) : null;
+        var ended = new List<bool>();
+        seq.TrackEnded += ended.Add;
+        var buf = new float[3000 * 2];
+        Assert.Equal(buf.Length, seq.Read(buf, 0, buf.Length));
+        Assert.Equal(new[] { true, false }, ended); // switched once, then ran out
+        Assert.Equal(1000, second.Consumed);
+        Assert.All(buf[(2000 * 2)..], v => Assert.Equal(0f, v)); // silence after both
+    }
+
+    [Fact]
+    public void SpectrumSeesATone()
+    {
+        var sp = new SpectrumSampleProvider(new Sine(1000, 44100, amp: 0.8f));
+        ReadAll(sp, 44100);
+        var peak = Array.IndexOf(sp.Bands, sp.Bands.Max());
+        var f = 30.0 * Math.Pow(16000.0 / 30.0, (peak + 0.5) / SpectrumSampleProvider.BandCount);
+        Assert.InRange(f, 700, 1400);
+    }
+}
+
+public class SequencerEdgeTests
+{
+    [Fact]
+    public void AnEmptyNextTrackDoesNotHang()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat);
+        seq.SetTrack(new Sine(440, 10));
+        seq.NextReady = () => new SequencerTrack(new Sine(440, 0)); // always hands back an already-finished track
+        var buf = new float[1000];
+        Assert.Equal(buf.Length, seq.Read(buf, 0, buf.Length));
+        Assert.Equal(buf.Length, seq.Read(buf, 0, buf.Length)); // and stays silent afterwards
+    }
+}
+
+/// <summary>
+/// NAudio's output path hands sample providers a byte[] disguised as float[] (WaveBuffer).
+/// Array.Copy / Array.Clear / Span on it throw or touch the wrong range, so providers must
+/// write it element by element. These run every provider the way the real output does.
+/// </summary>
+public class OutputBufferTests
+{
+    private static int ReadThroughWaveBuffer(ISampleProvider p, int floats)
+    {
+        var wb = new WaveBuffer(floats * 4);
+        Array.Fill(wb.ByteBuffer, (byte)0x7F); // garbage, to prove silence really gets written
+        var n = p.Read(wb.FloatBuffer, 0, floats);
+        for (var i = 0; i < n; i++) Assert.True(float.IsFinite(wb.FloatBuffer[i]) && Math.Abs(wb.FloatBuffer[i]) <= 1.5f, $"sample {i} = {wb.FloatBuffer[i]}");
+        return n;
+    }
+
+    [Fact]
+    public void TurntableStopAndSpinUpWorkOnTheRealOutputBuffer()
+    {
+        var tt = new TurntableSampleProvider(new Sine(440, 44100 * 10));
+        ReadThroughWaveBuffer(tt, 8820);
+        tt.Brake(0.45);
+        for (var i = 0; i < 20; i++) ReadThroughWaveBuffer(tt, 8820); // winds down, then silence
+        Assert.True(tt.IsStopped);
+        tt.SpinUp();
+        for (var i = 0; i < 20; i++) Assert.Equal(8820, ReadThroughWaveBuffer(tt, 8820)); // the reported crash
+        Assert.False(tt.IsStopped);
+    }
+
+    [Fact]
+    public void SequencerSilenceIsWrittenOnTheRealOutputBuffer()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat);
+        seq.SetTrack(new Sine(440, 100));
+        Assert.Equal(4000, ReadThroughWaveBuffer(seq, 4000)); // track ends early: rest must be zeros, not garbage
+    }
+}
+
+/// <summary>Constant-level stereo source of a known length.</summary>
+internal sealed class Dc(float level, int frames) : ISampleProvider
+{
+    private int _i;
+    public WaveFormat WaveFormat { get; } = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+    public int Read(float[] buffer, int offset, int count)
+    {
+        var n = 0;
+        while (n + 2 <= count && _i < frames) { buffer[offset + n] = level; buffer[offset + n + 1] = level; n += 2; _i++; }
+        return n;
+    }
+}
+
+public class CrossfadeTests
+{
+    [Fact]
+    public void CrossfadeOverlapsTheTracksWithEqualPowerAndReleasesTheOldOne()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat) { CrossfadeFrames = 1000 };
+        var a = new Dc(0.5f, 5000);
+        var b = new Dc(0.5f, 5000);
+        seq.SetTrack(a, 5000);
+        var handed = 0;
+        seq.NextReady = () => handed++ == 0 ? new SequencerTrack(b, 5000) : null;
+        var ended = new List<bool>();
+        var released = new List<ISampleProvider>();
+        seq.TrackEnded += ended.Add;
+        seq.Released += released.Add;
+
+        var outp = new float[12000 * 2];
+        for (var o = 0; o < outp.Length; o += 512) seq.Read(outp, o, Math.Min(512, outp.Length - o));
+        float At(int frame) => outp[frame * 2];
+
+        Assert.Equal(0.5f, At(3999));                     // A alone until 1000 frames before its end
+        Assert.InRange(At(4500), 0.69f, 0.71f);           // middle of the fade: 0.5·cos45° + 0.5·sin45° ≈ 0.707
+        Assert.Equal(0.5f, At(5500));                     // B alone
+        Assert.Equal(0f, At(9000 + 10));                  // A (4000 solo) + fade (1000) + B's last 4000 = 9000 frames
+        Assert.Equal(new[] { true, false }, ended);       // switched once (at the fade), then ran out
+        Assert.Same(a, released[0]);                      // A released once the fade finished
+        Assert.Contains(b, released);
+    }
+
+    [Fact]
+    public void WithoutCrossfadeItIsGaplessAndReleasesEachTrack()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat);
+        var a = new Dc(0.25f, 1000);
+        var b = new Dc(0.75f, 1000);
+        seq.SetTrack(a, 1000);
+        var handed = 0;
+        seq.NextReady = () => handed++ == 0 ? new SequencerTrack(b, 1000) : null;
+        var released = new List<ISampleProvider>();
+        seq.Released += released.Add;
+        var outp = new float[3000 * 2];
+        seq.Read(outp, 0, outp.Length);
+        Assert.Equal(0.25f, outp[999 * 2]);
+        Assert.Equal(0.75f, outp[1000 * 2]);              // no gap, no overlap
+        Assert.Equal(new ISampleProvider[] { a, b }, released);
+    }
+
+    [Fact]
+    public void ReplacingTheTrackMidFadeReleasesBoth()
+    {
+        var seq = new TrackSequencer(TrackSequencer.StandardFormat) { CrossfadeFrames = 2000 };
+        var a = new Dc(0.5f, 3000);
+        var b = new Dc(0.5f, 3000);
+        seq.SetTrack(a, 3000);
+        seq.NextReady = () => new SequencerTrack(b, 3000);
+        var released = new List<ISampleProvider>();
+        seq.Released += released.Add;
+        seq.Read(new float[1500 * 2], 0, 1500 * 2); // now mid-fade
+        seq.SetTrack(new Dc(0.1f, 100), 100);
+        Assert.Contains(a, released);
+        Assert.Contains(b, released);
+    }
+}

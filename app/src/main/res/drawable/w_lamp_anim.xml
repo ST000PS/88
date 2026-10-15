@@ -1,0 +1,14 @@
+<!-- Live: a red dot pulsing like the site's live indicator. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector android:width="12dp" android:height="12dp" android:viewportWidth="12" android:viewportHeight="12">
+            <path android:name="dot" android:fillColor="#FFF2F2F2" android:pathData="M6,6m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+        </vector>
+    </aapt:attr>
+    <target android:name="dot">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:propertyName="fillAlpha" android:valueFrom="1" android:valueTo="0.3" android:duration="700"
+                android:repeatCount="infinite" android:repeatMode="reverse" android:interpolator="@android:interpolator/fast_out_slow_in" />
+        </aapt:attr>
+    </target>
+</animated-vector>

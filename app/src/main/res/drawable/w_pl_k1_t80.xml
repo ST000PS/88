@@ -1,0 +1,128 @@
+<!-- Pad layer: k pattern 1 at about 80 BPM. Lit pads glow from beneath, bloom onto the gutter and
+     press down on each hit; stacked with the other layers over the unlit pads. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector android:width="100dp" android:height="100dp" android:viewportWidth="100" android:viewportHeight="100">
+            <path android:name="b1" android:fillAlpha="0" android:pathData="M1.40,74.80H21.20Q25.20,74.80 25.20,78.80V98.60Q25.20,102.60 21.20,102.60H1.40Q-2.60,102.60 -2.60,98.60V78.80Q-2.60,74.80 1.40,74.80Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="11.30" android:centerY="88.70" android:gradientRadius="19.21"><item android:offset="0" android:color="#55FFFFFF" /><item android:offset="0.6" android:color="#22FFFFFF" /><item android:offset="1" android:color="#00FFFFFF" /></gradient></aapt:attr></path>
+            <group android:name="g1" android:pivotX="11.30" android:pivotY="88.70">
+                <path android:name="l1" android:fillAlpha="0" android:pathData="M1.30,77.40H21.30Q22.60,77.40 22.60,78.70V98.70Q22.60,100.00 21.30,100.00H1.30Q0.00,100.00 0.00,98.70V78.70Q0.00,77.40 1.30,77.40Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="11.30" android:centerY="87.70" android:gradientRadius="16.27"><item android:offset="0" android:color="#FFFFFFFF" /><item android:offset="0.55" android:color="#FFE6E6E6" /><item android:offset="1" android:color="#FFA8A8A8" /></gradient></aapt:attr></path>
+            </group>
+            <path android:name="b8" android:fillAlpha="0" android:pathData="M78.80,49.00H98.60Q102.60,49.00 102.60,53.00V72.80Q102.60,76.80 98.60,76.80H78.80Q74.80,76.80 74.80,72.80V53.00Q74.80,49.00 78.80,49.00Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="88.70" android:centerY="62.90" android:gradientRadius="19.21"><item android:offset="0" android:color="#55FFFFFF" /><item android:offset="0.6" android:color="#22FFFFFF" /><item android:offset="1" android:color="#00FFFFFF" /></gradient></aapt:attr></path>
+            <group android:name="g8" android:pivotX="88.70" android:pivotY="62.90">
+                <path android:name="l8" android:fillAlpha="0" android:pathData="M78.70,51.60H98.70Q100.00,51.60 100.00,52.90V72.90Q100.00,74.20 98.70,74.20H78.70Q77.40,74.20 77.40,72.90V52.90Q77.40,51.60 78.70,51.60Z"><aapt:attr name="android:fillColor"><gradient android:type="radial" android:centerX="88.70" android:centerY="61.90" android:gradientRadius="16.27"><item android:offset="0" android:color="#FFFFFFFF" /><item android:offset="0.55" android:color="#FFE6E6E6" /><item android:offset="1" android:color="#FFA8A8A8" /></gradient></aapt:attr></path>
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="l1">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="3000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="1.0" />
+                    <keyframe android:fraction="0.125" android:value="0.0" />
+                    <keyframe android:fraction="0.4367" android:value="0.0" />
+                    <keyframe android:fraction="0.4375" android:value="0.85" />
+                    <keyframe android:fraction="0.5625" android:value="0.0" />
+                    <keyframe android:fraction="0.6242" android:value="0.0" />
+                    <keyframe android:fraction="0.625" android:value="0.85" />
+                    <keyframe android:fraction="0.75" android:value="0.0" />
+                    <keyframe android:fraction="1.0" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b1">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="3000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="1.0" />
+                    <keyframe android:fraction="0.125" android:value="0.0" />
+                    <keyframe android:fraction="0.4367" android:value="0.0" />
+                    <keyframe android:fraction="0.4375" android:value="0.85" />
+                    <keyframe android:fraction="0.5625" android:value="0.0" />
+                    <keyframe android:fraction="0.6242" android:value="0.0" />
+                    <keyframe android:fraction="0.625" android:value="0.85" />
+                    <keyframe android:fraction="0.75" android:value="0.0" />
+                    <keyframe android:fraction="1.0" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="g1">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="3000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.95" />
+                    <keyframe android:fraction="0.0625" android:value="1.0" />
+                    <keyframe android:fraction="0.4367" android:value="1.0" />
+                    <keyframe android:fraction="0.4375" android:value="0.958" />
+                    <keyframe android:fraction="0.5" android:value="1.0" />
+                    <keyframe android:fraction="0.6242" android:value="1.0" />
+                    <keyframe android:fraction="0.625" android:value="0.958" />
+                    <keyframe android:fraction="0.6875" android:value="1.0" />
+                    <keyframe android:fraction="1.0" android:value="1.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="g1">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="3000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.95" />
+                    <keyframe android:fraction="0.0625" android:value="1.0" />
+                    <keyframe android:fraction="0.4367" android:value="1.0" />
+                    <keyframe android:fraction="0.4375" android:value="0.958" />
+                    <keyframe android:fraction="0.5" android:value="1.0" />
+                    <keyframe android:fraction="0.6242" android:value="1.0" />
+                    <keyframe android:fraction="0.625" android:value="0.958" />
+                    <keyframe android:fraction="0.6875" android:value="1.0" />
+                    <keyframe android:fraction="1.0" android:value="1.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="l8">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="3000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.5" />
+                    <keyframe android:fraction="0.125" android:value="0.0" />
+                    <keyframe android:fraction="1.0" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b8">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="3000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.5" />
+                    <keyframe android:fraction="0.125" android:value="0.0" />
+                    <keyframe android:fraction="1.0" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="g8">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="3000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.975" />
+                    <keyframe android:fraction="0.0625" android:value="1.0" />
+                    <keyframe android:fraction="1.0" android:value="1.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="g8">
+        <aapt:attr name="android:animation">
+            <objectAnimator android:duration="3000" android:repeatCount="infinite" android:interpolator="@android:anim/linear_interpolator">
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.0" android:value="0.975" />
+                    <keyframe android:fraction="0.0625" android:value="1.0" />
+                    <keyframe android:fraction="1.0" android:value="1.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+</animated-vector>

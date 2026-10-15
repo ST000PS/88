@@ -6,3 +6,7 @@ local.properties
 .DS_Store
 captures/
 .kotlin/
+windows/**/bin/
+windows/**/obj/
+windows/out/
+*.user

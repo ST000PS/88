@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -79,6 +80,8 @@ fun AccountScreen(state: UiState, vm: AppViewModel, openSound: () -> Unit) {
             Divider()
             Text("Not a subscriber? 28-second previews of everything are free. Subscribe from here after signing in.", style = MaterialTheme.typography.bodySmall, color = Dim)
         }
+        Divider()
+        DownloadsSection(state, vm)
         Divider()
         QualitySection(state, vm)
         Divider()
@@ -188,7 +191,8 @@ private fun SignInForm(vm: AppViewModel) {
     var email by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-    var usePassword by rememberSaveable { mutableStateOf(false) }
+    var usePassword by rememberSaveable { mutableStateOf(true) }
+    var stay by rememberSaveable { mutableStateOf(true) }
     var codeSent by rememberSaveable { mutableStateOf(false) }
     val b = rememberBusy()
 
@@ -215,9 +219,16 @@ private fun SignInForm(vm: AppViewModel) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             modifier = Modifier.fillMaxWidth(),
         )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { stay = !stay }) {
+            Checkbox(checked = stay, onCheckedChange = { stay = it })
+            Column {
+                Text("Stay signed in")
+                Text("Kept encrypted on this phone only; signs you back in if the site logs you out.", style = MaterialTheme.typography.bodySmall, color = Dim)
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Button(enabled = !b.busy && email.isNotBlank() && password.isNotEmpty(), onClick = {
-            run { vm.passwordLogin(email.trim(), password) }
+            run { vm.passwordLogin(email.trim(), password, stay) }
         }) { Text("SIGN IN") }
     } else if (!codeSent) {
         Button(enabled = !b.busy && email.contains('@'), onClick = {
@@ -243,4 +254,23 @@ private fun SignInForm(vm: AppViewModel) {
     TextButton(onClick = { usePassword = !usePassword; b.message = null }) {
         Text(if (usePassword) "Use an email code instead" else "Use a password instead")
     }
+}
+
+@Composable
+private fun DownloadsSection(state: UiState, vm: AppViewModel) {
+    val ctx = LocalContext.current
+    @Suppress("UNUSED_EXPRESSION") state.offlineVersion
+    val store = ctx.applicationContext.let { (it as com.st000ps.powerstone.PowerstoneApp).offline }
+    Text("DOWNLOADS", style = MaterialTheme.typography.labelLarge, color = Dim)
+    Text(
+        "Subscribers can download releases, playlists and favourites (↓) to listen offline. They play offline for 30 days after your " +
+            "subscription was last confirmed, and are removed if you sign out or the subscription ends.",
+        style = MaterialTheme.typography.bodySmall, color = Dim,
+    )
+    Text(
+        if (store.count == 0) "No downloads yet."
+        else "${store.count} tracks · ${store.totalBytes / 1_048_576} MB" + if (store.usable) "" else " · locked until your subscription is confirmed online",
+        modifier = Modifier.padding(top = 6.dp),
+    )
+    if (store.count > 0) OutlinedButton(onClick = { vm.removeAllDownloads() }, modifier = Modifier.padding(top = 6.dp)) { Text("REMOVE ALL DOWNLOADS") }
 }

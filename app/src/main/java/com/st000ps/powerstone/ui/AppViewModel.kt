@@ -21,6 +21,7 @@ import com.st000ps.powerstone.data.Playlist
 import com.st000ps.powerstone.data.Quality
 import com.st000ps.powerstone.data.Release
 import com.st000ps.powerstone.data.SharedPlaylist
+import com.st000ps.powerstone.data.SleepState
 import com.st000ps.powerstone.data.Stats
 import com.st000ps.powerstone.data.StatsMath
 import com.st000ps.powerstone.data.Track
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -63,6 +65,9 @@ data class NowPlaying(
     val volume: Float = 1f,
 )
 
+/** One line of the "Up next" list. */
+data class QueueEntry(val index: Int, val title: String, val album: String, val current: Boolean)
+
 data class UiState(
     val releases: List<Release> = emptyList(),
     val loading: Boolean = true,
@@ -77,6 +82,13 @@ data class UiState(
     val visualizerOn: Boolean = true,
     val password: PasswordState = PasswordState(),
     val now: NowPlaying = NowPlaying(),
+    val queue: List<QueueEntry> = emptyList(),
+    val sleep: SleepState = SleepState(),
+    val download: String? = null,
+    /** Bumps when downloads change (so "downloaded" marks refresh). */
+    val offlineVersion: Int = 0,
+    val offline: Boolean = false,
+    val crossfade: Int = 0,
 )
 
 /** One-off navigation requests (deep links, "open the playlist I just made"). */
@@ -122,9 +134,43 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         combine(app.releases, app.me, app.playlists.list, settings.eq, settings.vinyl) { rel, me, pls, eq, vinyl ->
             _state.update { it.copy(releases = rel, me = me, playlists = pls, eq = eq, vinyl = vinyl) }
         }.launchIn(viewModelScope)
+        app.sleep.onEach { s -> _state.update { it.copy(sleep = s) } }.launchIn(viewModelScope)
+        app.favs.onEach { f -> _state.update { it.copy(favs = f) } }.launchIn(viewModelScope)
+        app.downloadStatus.onEach { d -> _state.update { it.copy(download = d) } }.launchIn(viewModelScope)
+        app.offline.version.onEach { v -> _state.update { it.copy(offlineVersion = v) } }.launchIn(viewModelScope)
+        app.isOffline.onEach { o -> _state.update { it.copy(offline = o) } }.launchIn(viewModelScope)
+        settings.crossfade.onEach { c -> _state.update { it.copy(crossfade = c) } }.launchIn(viewModelScope)
         refresh()
         connectPlayer()
     }
+
+    // ---------- sleep timer ----------
+
+    /** Minutes from now, or [endOfTrack]; null minutes and false = off. */
+    fun setSleep(minutes: Int?, endOfTrack: Boolean = false) {
+        app.sleep.value = SleepState(endAt = minutes?.let { System.currentTimeMillis() + it * 60_000L }, endOfTrack = endOfTrack)
+        toast(when {
+            endOfTrack -> "Sleep timer — stopping after this track"
+            minutes != null -> "Sleep timer — $minutes min"
+            else -> "Sleep timer off"
+        })
+    }
+
+    // ---------- widget ----------
+
+    private var pendingWidgetAction: String? = null
+
+    /** The widget opened the app to "resume" the last session or "shuffle"; runs once the player is connected. */
+    fun widgetAction(action: String) {
+        val c = controller
+        if (c == null) { pendingWidgetAction = action; return }
+        when (action) {
+            "resume" -> if (c.mediaItemCount > 0) { if (c.playbackState == Player.STATE_IDLE) c.prepare(); c.play() } else smartShuffle()
+            "shuffle" -> smartShuffle()
+        }
+    }
+
+    fun jumpTo(index: Int) { controller?.run { seekTo(index, 0); play() } }
 
     fun toast(msg: String) { _messages.trySend(msg) }
 
@@ -143,13 +189,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshMe() = viewModelScope.launch { refreshAccount() }
 
     private suspend fun refreshAccount() {
-        val me = runCatching { api.me() }.getOrDefault(app.me.value)
-        app.me.value = me
-        val favs = if (me.signedIn) runCatching { api.favs().map { it.id } }.getOrDefault(_state.value.favs) else emptyList()
+        val fresh = app.ensureSignedIn() // quietly signs back in if the session ended (stay signed in)
+        app.isOffline.value = fresh == null
+        if (fresh != null) {
+            app.me.value = fresh
+            // Only a real answer from the site may lock or delete downloads — never a network failure.
+            app.offline.accountChecked(fresh)
+            // Full-length audio in the playback cache follows the same rule as downloads.
+            if (!fresh.isSubscriber) withContext(kotlinx.coroutines.Dispatchers.IO) { com.st000ps.powerstone.playback.MediaCache.clear(app) }
+        }
+        val me = app.me.value
+        if (fresh == null) { app.playlists.load(false); return } // offline: keep what we know
+        app.favs.value = if (me.signedIn) runCatching { api.favs().map { it.id } }.getOrDefault(app.favs.value) else emptyList()
         val pw = if (me.signedIn) api.passwordState() else PasswordState()
-        _state.update { it.copy(favs = favs, password = pw) }
+        _state.update { it.copy(password = pw) }
         app.playlists.load(me.signedIn)
     }
+
+    // ---------- downloads ----------
+
+    fun download(items: List<Pair<Release, Track>>, what: String) = app.startDownload(items, what, ::toast)
+    fun cancelDownload() = app.cancelDownload()
+    fun removeDownloads(items: List<Pair<Release, Track>>) { app.offline.remove(items.map { trackId(it.first, it.second) }); toast("Download removed") }
+    fun removeAllDownloads() { app.offline.removeAll(); toast("All downloads removed") }
+    fun isDownloaded(r: Release, t: Track) = app.offline.has(trackId(r, t))
+    fun setCrossfade(seconds: Int) = settings.setCrossfade(seconds)
 
     fun release(id: String): Release? = _state.value.releases.firstOrNull { it.id == id }
 
@@ -176,7 +240,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun verifyCode(email: String, code: String) { api.verifyCode(email, code); refreshAccount() }
 
-    suspend fun passwordLogin(email: String, password: String) { api.passwordLogin(email, password); refreshAccount() }
+    suspend fun passwordLogin(email: String, password: String, stay: Boolean = true) {
+        api.passwordLogin(email, password)
+        if (stay) app.vault.save(email, password) else app.vault.clear()
+        refreshAccount()
+    }
 
     suspend fun setPassword(password: String) {
         api.setPassword(password)
@@ -187,11 +255,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun portalUrl() = api.portalUrl()
 
     fun logout() = viewModelScope.launch {
+        app.vault.clear() // signing out means staying out
         api.logout()
         controller?.run { stop(); clearMediaItems() }
         app.me.value = Me()
         app.playlists.signedOut()
-        _state.update { it.copy(favs = emptyList(), password = PasswordState()) }
+        app.favs.value = emptyList()
+        app.offline.removeAll() // downloads belong to the subscription
+        withContext(kotlinx.coroutines.Dispatchers.IO) { com.st000ps.powerstone.playback.MediaCache.clear(app) }
+        _state.update { it.copy(password = PasswordState()) }
     }
 
     // ---------- settings ----------
@@ -211,17 +283,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleFav(id: String) = viewModelScope.launch {
         if (!_state.value.me.signedIn) { toast("Sign in to save favourites"); return@launch }
-        val on = id !in _state.value.favs
-        val before = _state.value.favs
-        _state.update { it.copy(favs = if (on) listOf(id) + it.favs else it.favs - id) }
+        val on = id !in app.favs.value
         val title = lookup(id)?.second?.title ?: id
         toast(if (on) "$title — added to favourites" else "$title — removed")
-        try {
-            api.setFav(id, on)?.let { list -> _state.update { it.copy(favs = list.map { f -> f.id }) } }
-        } catch (_: Exception) {
-            _state.update { it.copy(favs = before) }
-            toast("Couldn't update favourites")
-        }
+        if (!app.setFav(id, on)) toast("Couldn't update favourites")
     }
 
     // ---------- playlists ----------
@@ -326,9 +391,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val c = runCatching { future.get() }.getOrNull() ?: return@addListener
             controller = c
             c.addListener(object : Player.Listener {
-                override fun onEvents(player: Player, events: Player.Events) = syncNow()
+                override fun onEvents(player: Player, events: Player.Events) {
+                    syncNow()
+                    if (events.containsAny(Player.EVENT_TIMELINE_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) syncQueue()
+                }
             })
             syncNow()
+            syncQueue()
+            pendingWidgetAction?.let { pendingWidgetAction = null; widgetAction(it) }
         }, ContextCompat.getMainExecutor(ctx))
 
         viewModelScope.launch {
@@ -366,6 +436,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** The current track and what comes after it (a window, for long shuffles). */
+    private fun syncQueue() {
+        val c = controller ?: return
+        val cur = c.currentMediaItemIndex
+        val from = (cur - 1).coerceAtLeast(0)
+        val to = minOf(c.mediaItemCount, cur + 40)
+        val list = (from until to).map { i ->
+            val md = c.getMediaItemAt(i).mediaMetadata
+            QueueEntry(i, md.title?.toString() ?: "", md.albumTitle?.toString() ?: "", i == cur)
+        }
+        _state.update { it.copy(queue = list) }
+    }
+
     /** Current playback position, read fresh (for keeping the music video locked to the audio). */
     fun positionMs(): Long = controller?.currentPosition ?: 0
 
@@ -399,7 +482,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         toast("Shuffle — ${picks[0].second.title} / ${picks[0].first.title}")
     }
 
-    fun togglePlay() { controller?.run { if (playWhenReady && isPlaying) pause() else { if (playbackState == Player.STATE_IDLE) prepare(); play() } } }
+    fun togglePlay() {
+        val c = controller ?: return
+        if (c.mediaItemCount == 0) { smartShuffle(); return } // nothing queued: play means "play me something"
+        if (c.playWhenReady && c.isPlaying) c.pause() else { if (c.playbackState == Player.STATE_IDLE) c.prepare(); c.play() }
+    }
     fun next() { controller?.seekToNextMediaItem() }
     fun previous() { controller?.seekToPrevious() }
     fun seekTo(ms: Long) { controller?.seekTo(ms); syncNow() }

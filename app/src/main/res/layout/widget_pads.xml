@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The hero: the cover, big, beside the pads. The pads are matte rubber; while playing, the widget stacks
+     four groove layers on them (kick, snare, hats, sample chops), picked to match where this track's own
+     hits land in the bar and timed to its tempo. Fixed size so both stay square. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_sampler" android:layout_width="wrap_content" android:layout_height="wrap_content"
+    android:orientation="horizontal">
+    <ImageView android:id="@+id/w_hero_art" android:layout_width="132dp" android:layout_height="132dp"
+        android:background="@drawable/w_thumb_frame" android:padding="1dp" android:scaleType="centerCrop" android:src="@mipmap/ic_launcher"
+        android:contentDescription="@null" />
+    <FrameLayout android:layout_width="132dp" android:layout_height="132dp" android:layout_marginStart="8dp"
+        android:background="@drawable/w_panel" android:padding="5dp">
+        <ImageView android:id="@+id/w_pads_rest" android:layout_width="122dp" android:layout_height="122dp"
+            android:src="@drawable/w_pads_rest" android:contentDescription="@null" android:visibility="gone" />
+        <ImageView android:id="@+id/w_pads_off" android:layout_width="122dp" android:layout_height="122dp"
+            android:src="@drawable/w_pads_off" android:contentDescription="@null" />
+        <FrameLayout android:id="@+id/w_pl_k" android:layout_width="122dp" android:layout_height="122dp" />
+        <FrameLayout android:id="@+id/w_pl_s" android:layout_width="122dp" android:layout_height="122dp" />
+        <FrameLayout android:id="@+id/w_pl_h" android:layout_width="122dp" android:layout_height="122dp" />
+        <FrameLayout android:id="@+id/w_pl_c" android:layout_width="122dp" android:layout_height="122dp" />
+    </FrameLayout>
+</LinearLayout>

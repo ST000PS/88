@@ -1,0 +1,9 @@
+<!-- Track progress as a hairline. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape><solid android:color="#1FFFFFFF" /></shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip><shape><solid android:color="#FFD0D0D0" /></shape></clip>
+    </item>
+</layer-list>

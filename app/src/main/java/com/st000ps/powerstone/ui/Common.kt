@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
@@ -124,6 +125,8 @@ fun TrackRow(
                     t.bpm?.let { "$it BPM" },
                     t.key?.takeIf { it.isNotEmpty() }?.let { "KEY $it" },
                 ).joinToString(" · ")
+                @Suppress("UNUSED_EXPRESSION") state.offlineVersion // re-check when downloads change
+                if (vm.isDownloaded(r, t)) { Icon(Icons.Filled.DownloadDone, "Downloaded", Modifier.size(14.dp), tint = Rose); Spacer(Modifier.width(4.dp)) }
                 if (t.video != null) { Icon(Icons.Filled.Videocam, "Has video", Modifier.size(14.dp), tint = Dim); Spacer(Modifier.width(4.dp)) }
                 if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.bodySmall, color = Dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }

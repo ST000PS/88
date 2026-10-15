@@ -1,0 +1,5 @@
+<!-- A key: square, hairline, lights up when pressed. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true"><shape><solid android:color="#FF151515" /><stroke android:width="1dp" android:color="#FF3A3A3A" /></shape></item>
+    <item><shape><solid android:color="#FF0A0A0A" /><stroke android:width="1dp" android:color="#FF222222" /></shape></item>
+</selector>

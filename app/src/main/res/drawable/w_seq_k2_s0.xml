@@ -1,0 +1,19 @@
+<!-- Step sequencer marks: kick pattern 2 (bright), snare pattern 0 (mid). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="336dp" android:height="7dp" android:viewportWidth="164" android:viewportHeight="8">
+    <path android:fillColor="#FF8A8A8A" android:pathData="M0,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M10,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M20,0h8v8h-8z" />
+    <path android:fillColor="#FF8A8A8A" android:pathData="M30,0h8v8h-8z" />
+    <path android:fillColor="#FF4A4A4A" android:pathData="M42,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M52,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M62,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M72,0h8v8h-8z" />
+    <path android:fillColor="#FF8A8A8A" android:pathData="M84,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M94,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M104,0h8v8h-8z" />
+    <path android:fillColor="#FF8A8A8A" android:pathData="M114,0h8v8h-8z" />
+    <path android:fillColor="#FF4A4A4A" android:pathData="M126,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M136,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M146,0h8v8h-8z" />
+    <path android:fillColor="#FF1A1A1A" android:pathData="M156,0h8v8h-8z" />
+</vector>

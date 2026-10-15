@@ -7,8 +7,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Album
@@ -61,6 +75,16 @@ class MainActivity : ComponentActivity() {
                 val route = backStack?.destination?.route
                 val fullScreen = route == "player" || route == "sound"
                 val snackbar = remember { SnackbarHostState() }
+                // Window size, not screen size: in split-screen / freeform this is our half of the screen.
+                val config = LocalConfiguration.current
+                val useRail = config.screenHeightDp < 480 || config.screenWidthDp >= 600
+                val selectTab: (Tab) -> Unit = { tab ->
+                    nav.navigate(tab.route) {
+                        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
 
                 LaunchedEffect(Unit) { vm.messages.collect { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(it) } }
                 LaunchedEffect(Unit) { vm.nav.collect { req -> navigate(nav, req) } }
@@ -72,22 +96,42 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                Row(Modifier.fillMaxSize().background(Ink)) {
+                if (useRail && !fullScreen) NavigationRail(containerColor = Panel, modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start))) {
+                    tabs.forEach { tab ->
+                        NavigationRailItem(
+                            selected = route?.substringBefore('?') == tab.route,
+                            onClick = { selectTab(tab) },
+                            icon = { Icon(tab.icon, tab.label) },
+                            label = if (config.screenHeightDp >= 360) ({ Text(tab.label) }) else null,
+                            colors = NavigationRailItemDefaults.colors(indicatorColor = Edge),
+                        )
+                    }
+                }
                 Scaffold(
+                    modifier = Modifier.weight(1f),
                     snackbarHost = { SnackbarHost(snackbar) },
                     bottomBar = {
                         if (!fullScreen) Column {
+                            state.download?.let { d ->
+                                androidx.compose.foundation.layout.Row(
+                                    Modifier.fillMaxWidth().background(Panel).padding(horizontal = 16.dp, vertical = 4.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                ) {
+                                    Text(d, color = Rose, style = androidx.compose.material3.MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                                    androidx.compose.material3.TextButton(onClick = vm::cancelDownload) { Text("STOP") }
+                                }
+                            }
+                            if (state.offline) Text(
+                                "OFFLINE · playing downloads", color = Rose, style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.fillMaxWidth().background(Panel).padding(horizontal = 16.dp, vertical = 2.dp),
+                            )
                             if (state.now.mediaId != null) MiniPlayer(state, vm) { nav.navigate("player") }
-                            NavigationBar(containerColor = Panel) {
+                            if (!useRail) NavigationBar(containerColor = Panel) {
                                 tabs.forEach { tab ->
                                     NavigationBarItem(
                                         selected = route?.substringBefore('?') == tab.route,
-                                        onClick = {
-                                            nav.navigate(tab.route) {
-                                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        },
+                                        onClick = { selectTab(tab) },
                                         icon = { Icon(tab.icon, null) },
                                         label = { Text(tab.label) },
                                         colors = NavigationBarItemDefaults.colors(indicatorColor = Edge),
@@ -130,6 +174,7 @@ class MainActivity : ComponentActivity() {
                         composable("sound") { SoundScreen(state, vm) { nav.popBackStack() } }
                     }
                 }
+                }
             }
         }
     }
@@ -149,5 +194,9 @@ class MainActivity : ComponentActivity() {
 
     private fun handleLink(intent: Intent?) {
         if (intent?.action == Intent.ACTION_VIEW) intent.data?.let(vm::openLink)
+        intent?.getStringExtra(com.st000ps.powerstone.widget.PlayerWidget.EXTRA_WIDGET_ACTION)?.let {
+            intent.removeExtra(com.st000ps.powerstone.widget.PlayerWidget.EXTRA_WIDGET_ACTION)
+            vm.widgetAction(it)
+        }
     }
 }

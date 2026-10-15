@@ -1,0 +1,661 @@
+<ResourceDictionary x:Class="Powerstone.Windows.Views.Pages"
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:Powerstone.Windows.ViewModels"
+                    xmlns:c="clr-namespace:Powerstone.Windows.Controls">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/88.8FM;component/Views/Theme.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- ===================================================== shared pieces -->
+
+    <Style x:Key="MenuEntryItem" TargetType="MenuItem">
+        <Setter Property="Header" Value="{Binding Header}" />
+        <Setter Property="Command" Value="{Binding Command}" />
+    </Style>
+
+    <!-- A track line: number or cover, title, meta, duration, heart, play, ⋯ -->
+    <DataTemplate DataType="{x:Type vm:TrackRowViewModel}">
+        <Border x:Name="row" Background="Transparent" Padding="10,5">
+            <Border.InputBindings>
+                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding PlayCommand}" />
+            </Border.InputBindings>
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Play" Command="{Binding PlayCommand}" />
+                    <MenuItem Header="Add to playlist" ItemsSource="{Binding PlaylistMenu}" ItemContainerStyle="{StaticResource MenuEntryItem}" />
+                    <MenuItem Header="Copy link" Command="{Binding ShareCommand}" />
+                    <MenuItem Header="Go to release" Command="{Binding OpenReleaseCommand}" />
+                    <MenuItem Header="This playlist" ItemsSource="{Binding ExtraMenu}" ItemContainerStyle="{StaticResource MenuEntryItem}"
+                              Visibility="{Binding HasExtraMenu, Converter={StaticResource Vis}}" />
+                </ContextMenu>
+            </Border.ContextMenu>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding NumberText}" VerticalAlignment="Center" Foreground="{Binding IsCurrent, Converter={StaticResource RoseOrDim}}"
+                           Visibility="{Binding ShowAlbum, Converter={StaticResource NotVis}}" />
+                <Image Source="{Binding Thumb, Converter={StaticResource Img}}" Width="40" Height="40" Stretch="UniformToFill" HorizontalAlignment="Left"
+                       Visibility="{Binding ShowAlbum, Converter={StaticResource Vis}}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" Foreground="{Binding IsCurrent, Converter={StaticResource RoseIfTrue}}" />
+                    <TextBlock Text="{Binding Meta}" Style="{StaticResource DimText}" Visibility="{Binding Meta, Converter={StaticResource NullVis}}" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding Duration}" Style="{StaticResource DimText}" VerticalAlignment="Center" Margin="12,0" />
+                <Button Grid.Column="3" Style="{StaticResource Icon}" Command="{Binding FavCommand}" ToolTip="Favourite"
+                        Visibility="{Binding SignedIn, Converter={StaticResource Vis}}">
+                    <Grid>
+                        <TextBlock Text="&#xEB52;" Foreground="{StaticResource Rose}" Visibility="{Binding IsFav, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="&#xEB51;" Foreground="{StaticResource Dim}" Visibility="{Binding IsFav, Converter={StaticResource NotVis}}" />
+                    </Grid>
+                </Button>
+                <Button Grid.Column="4" Style="{StaticResource Icon}" Content="&#xE768;" ToolTip="Play" Command="{Binding PlayCommand}" />
+                <Button Grid.Column="5" Style="{StaticResource Icon}" Content="&#xE712;" ToolTip="More" Click="More_Click" Tag="{Binding ElementName=row}" />
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpmHeader}">
+        <TextBlock Text="{Binding Text}" Style="{StaticResource Label}" Margin="10,14,0,4" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="ReleaseCard">
+        <Button Width="176" Margin="0,0,14,18" Padding="0" BorderThickness="0" HorizontalContentAlignment="Left"
+                Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+            <StackPanel Width="176">
+                <Border Background="{StaticResource Panel}" Width="176" Height="176">
+                    <Image Source="{Binding Thumb, Converter={StaticResource Img}}" Stretch="UniformToFill" />
+                </Border>
+                <TextBlock Text="{Binding Title}" FontWeight="Bold" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding Summary}" Style="{StaticResource DimText}" />
+            </StackPanel>
+        </Button>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ReleaseLine">
+        <Button Padding="8,4" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+            <Grid HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="56" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Image Source="{Binding Thumb, Converter={StaticResource Img}}" Width="44" Height="44" Stretch="UniformToFill" HorizontalAlignment="Left" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" />
+                    <TextBlock Text="{Binding Details}" Style="{StaticResource DimText}" />
+                </StackPanel>
+            </Grid>
+        </Button>
+    </DataTemplate>
+
+    <ItemsPanelTemplate x:Key="Wrap"><WrapPanel /></ItemsPanelTemplate>
+    <ItemsPanelTemplate x:Key="Row"><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+
+    <!-- ===================================================== catalogue -->
+
+    <DataTemplate DataType="{x:Type vm:CatalogueViewModel}">
+        <DockPanel Margin="24,16,12,0">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,12,8">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Style="{StaticResource DimText}" VerticalAlignment="Bottom" />
+                    <TextBlock Text="Catalogue" Style="{StaticResource Heading}" />
+                </DockPanel>
+                <TextBlock Text="{Binding Shell.Error}" Foreground="{StaticResource Rose}" TextWrapping="Wrap" Visibility="{Binding Shell.Error, Converter={StaticResource NullVis}}" />
+                <Grid Margin="0,10,0,10">
+                    <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged, Delay=200}" ToolTip="Search releases or songs — or paste a thepowerstone.com link to open it" />
+                    <TextBlock Text="Search releases or songs, or paste a thepowerstone.com link" Style="{StaticResource DimText}" Margin="10,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                        <TextBlock.Visibility>
+                            <Binding Path="Query" Converter="{StaticResource NullVis}" ConverterParameter="inverse" />
+                        </TextBlock.Visibility>
+                    </TextBlock>
+                </Grid>
+                <ItemsControl ItemsSource="{x:Static vm:CatalogueViewModel.SeriesChoices}" ItemsPanel="{StaticResource Row}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource ChipButton}" Content="{Binding}" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.SetSeriesCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                <Button.Tag>
+                                    <MultiBinding Converter="{StaticResource Eq}">
+                                        <Binding Path="DataContext.Series" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                        <Binding />
+                                    </MultiBinding>
+                                </Button.Tag>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <WrapPanel>
+                    <ToggleButton Style="{StaticResource Chip}" Content="▣ VIDEO" IsChecked="{Binding VideoOnly}" />
+                    <Button Style="{StaticResource ChipButton}" Content="NEWEST" Command="{Binding SetSortCommand}" CommandParameter="new">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Sort" /><Binding Source="new" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="OLDEST" Command="{Binding SetSortCommand}" CommandParameter="old">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Sort" /><Binding Source="old" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="A–Z" Command="{Binding SetSortCommand}" CommandParameter="az">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Sort" /><Binding Source="az" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <ToggleButton Style="{StaticResource Chip}" Content="▦ GRID" IsChecked="{Binding GridMode}" />
+                </WrapPanel>
+            </StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,12,16">
+                    <StackPanel Visibility="{Binding Songs.Count, Converter={StaticResource NullVis}}">
+                        <TextBlock Text="SONGS · 曲" Style="{StaticResource Label}" />
+                        <ItemsControl ItemsSource="{Binding Songs}" />
+                    </StackPanel>
+                    <TextBlock Text="RELEASED · 発売済み" Style="{StaticResource Label}" />
+                    <TextBlock Text="The whole catalogue, remastered." Style="{StaticResource DimText}" Margin="0,0,0,10" />
+                    <ItemsControl ItemsSource="{Binding Released}" ItemTemplate="{StaticResource ReleaseCard}" ItemsPanel="{StaticResource Wrap}"
+                                  Visibility="{Binding GridMode, Converter={StaticResource Vis}}" />
+                    <ItemsControl ItemsSource="{Binding Released}" ItemTemplate="{StaticResource ReleaseLine}"
+                                  Visibility="{Binding GridMode, Converter={StaticResource NotVis}}" />
+                    <TextBlock Text="UNRELEASED / RARE TRAX · 未発表" Style="{StaticResource Label}" />
+                    <TextBlock Text="Alt takes, roughs, test presses and rare trax from the streams. Koming soon when empty." Style="{StaticResource DimText}" Margin="0,0,0,10" />
+                    <ItemsControl ItemsSource="{Binding Unreleased}" ItemTemplate="{StaticResource ReleaseCard}" ItemsPanel="{StaticResource Wrap}"
+                                  Visibility="{Binding GridMode, Converter={StaticResource Vis}}" />
+                    <ItemsControl ItemsSource="{Binding Unreleased}" ItemTemplate="{StaticResource ReleaseLine}"
+                                  Visibility="{Binding GridMode, Converter={StaticResource NotVis}}" />
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </DataTemplate>
+
+    <!-- ===================================================== release -->
+
+    <DataTemplate DataType="{x:Type vm:ReleaseViewModel}">
+        <DockPanel Margin="24,8,12,0">
+            <Grid DockPanel.Dock="Top" Margin="0,0,12,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="200" Height="200" Background="{StaticResource Panel}" VerticalAlignment="Top">
+                    <Image Source="{Binding Release.Cover, Converter={StaticResource ImgBig}}" Stretch="UniformToFill" />
+                </Border>
+                <StackPanel Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Bottom">
+                    <TextBlock Text="{Binding Release.KindLabel}" Foreground="{StaticResource Rose}" FontSize="11" />
+                    <TextBlock Text="{Binding Release.Title}" Style="{StaticResource Heading}" FontSize="28" />
+                    <TextBlock Text="{Binding Info}" Style="{StaticResource DimText}" FontSize="12" />
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
+                        <Button Content="SHUFFLE" Command="{Binding ShuffleCommand}" Margin="0,0,8,0" />
+                        <Button Content="COPY LINK" Command="{Binding ShareCommand}" Margin="0,0,8,0" />
+                        <Button Content="BANDCAMP" Command="{Binding BandcampCommand}" Visibility="{Binding Release.Bandcamp, Converter={StaticResource NullVis}}" Margin="0,0,8,0" />
+                        <Button Content="{Binding DownloadLabel}" Command="{Binding DownloadCommand}" ToolTip="Keep this release on this PC for listening offline"
+                                Visibility="{Binding CanDownload, Converter={StaticResource Vis}}" />
+                    </WrapPanel>
+                    <TextBlock Text="{Binding PreviewNote}" Style="{StaticResource DimText}" Margin="0,8,0,0" Visibility="{Binding PreviewNote, Converter={StaticResource NullVis}}" />
+                    <ItemsControl ItemsSource="{Binding Tags}" ItemsPanel="{StaticResource Row}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource ChipButton}" Content="{Binding StringFormat=#{0}}" CommandParameter="{Binding}"
+                                        Command="{Binding DataContext.OpenTagCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+            <ListBox ItemsSource="{Binding Rows}" />
+        </DockPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:TagViewModel}">
+        <DockPanel Margin="24,8,12,0">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                <TextBlock Text="TAG" Foreground="{StaticResource Rose}" FontSize="11" />
+                <TextBlock Text="{Binding Tag, StringFormat=#{0}}" Style="{StaticResource Heading}" />
+                <TextBlock Text="{Binding Info}" Style="{StaticResource DimText}" />
+                <WrapPanel Margin="0,10,0,0">
+                    <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
+                    <Button Content="SHUFFLE" Command="{Binding ShuffleCommand}" Margin="0,0,8,0" />
+                    <Button Content="COPY LINK" Command="{Binding ShareCommand}" />
+                </WrapPanel>
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Rows}" />
+        </DockPanel>
+    </DataTemplate>
+
+    <!-- ===================================================== playlists -->
+
+    <DataTemplate DataType="{x:Type vm:PlaylistsViewModel}">
+        <DockPanel Margin="24,16,12,0">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Primary}" Content="+ NEW PLAYLIST" Command="{Binding NewCommand}" />
+                    <TextBlock Text="Playlists" Style="{StaticResource Heading}" />
+                </DockPanel>
+                <TextBlock Text="{Binding Note}" Style="{StaticResource DimText}" Visibility="{Binding Note, Converter={StaticResource NullVis}}" />
+                <Button Style="{StaticResource Link}" Content="♥ Favourites →" Command="{Binding OpenFavsCommand}" Margin="0,12,0,0"
+                        Visibility="{Binding Shell.Me.SignedIn, Converter={StaticResource Vis}}" />
+                <TextBlock Text="No playlists yet. Use + NEW PLAYLIST, or right-click any track → Add to playlist." Style="{StaticResource DimText}" Margin="0,12,0,0">
+                    <TextBlock.Visibility><Binding Path="Shell.PlaylistList.Count" Converter="{StaticResource NullVis}" ConverterParameter="zero" /></TextBlock.Visibility>
+                </TextBlock>
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Shell.PlaylistList}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Button Padding="10,8" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                                Command="{Binding DataContext.OpenCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Tracks.Count, StringFormat={}{0} TRK}" Style="{StaticResource DimText}" />
+                                <TextBlock Text="{Binding Name}" />
+                            </DockPanel>
+                        </Button>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:PlaylistViewModel}">
+        <DockPanel Margin="24,8,12,0">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                <TextBlock Text="PLAYLIST" Foreground="{StaticResource Rose}" FontSize="11" />
+                <DockPanel Margin="0,4,0,0">
+                    <Button DockPanel.Dock="Right" Content="RENAME" Command="{Binding RenameCommand}" Margin="8,0,0,0" />
+                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" FontSize="20" FontWeight="Bold" MaxLength="80" ToolTip="Edit the name, then RENAME" />
+                </DockPanel>
+                <TextBlock Text="{Binding Info}" Style="{StaticResource DimText}" Margin="0,4,0,0" />
+                <WrapPanel Margin="0,10,0,0">
+                    <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
+                    <Button Content="SHUFFLE PLAY" Command="{Binding ShuffleCommand}" Margin="0,0,8,0" />
+                    <Button Content="SHARE (COPY LINK)" Command="{Binding ShareCommand}" Margin="0,0,8,0" />
+                    <Button Content="↓ DOWNLOAD" Command="{Binding DownloadCommand}" Margin="0,0,8,0" Visibility="{Binding CanDownload, Converter={StaticResource Vis}}" />
+                    <Button Content="DELETE" Command="{Binding DeleteCommand}" Foreground="{StaticResource Rose}" />
+                </WrapPanel>
+                <TextBlock Text="Right-click a track to move or remove it. Add songs from any track's menu." Style="{StaticResource DimText}" Margin="0,8,0,0" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Rows}" />
+        </DockPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:SharedPlaylistViewModel}">
+        <DockPanel Margin="24,8,12,0">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                <TextBlock Text="SHARED PLAYLIST" Foreground="{StaticResource Rose}" FontSize="11" />
+                <TextBlock Text="{Binding Shared.Name, FallbackValue=Loading…}" Style="{StaticResource Heading}" />
+                <TextBlock Text="{Binding Error}" Foreground="{StaticResource Rose}" Visibility="{Binding Error, Converter={StaticResource NullVis}}" />
+                <WrapPanel Margin="0,10,0,0">
+                    <Button Style="{StaticResource Primary}" Content="▶ PLAY" Command="{Binding PlayCommand}" Margin="0,0,8,0" />
+                    <Button Content="+ SAVE TO MY PLAYLISTS" Command="{Binding SaveCommand}" Margin="0,0,8,0" />
+                    <Button Content="COPY LINK" Command="{Binding ShareCommand}" />
+                </WrapPanel>
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Rows}" />
+        </DockPanel>
+    </DataTemplate>
+
+    <!-- ===================================================== BPM -->
+
+    <DataTemplate DataType="{x:Type vm:BpmViewModel}">
+        <DockPanel Margin="24,16,12,0">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,12,8">
+                <TextBlock Text="Browse by BPM · テンポ" Style="{StaticResource Heading}" />
+                <TextBlock Text="{Binding RangeText}" FontSize="18" Margin="0,10,0,4" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="50" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="FROM" Style="{StaticResource DimText}" VerticalAlignment="Center" />
+                    <Slider Grid.Column="1" Minimum="{Binding Min}" Maximum="{Binding Max}" Value="{Binding Lo}" IsSnapToTickEnabled="True" TickFrequency="1" />
+                    <TextBlock Grid.Row="1" Text="TO" Style="{StaticResource DimText}" VerticalAlignment="Center" />
+                    <Slider Grid.Row="1" Grid.Column="1" Minimum="{Binding Min}" Maximum="{Binding Max}" Value="{Binding Hi}" IsSnapToTickEnabled="True" TickFrequency="1" />
+                </Grid>
+                <DockPanel Margin="0,8,0,0">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Primary}" Content="▶ PLAY ALL" Command="{Binding PlayAllCommand}" />
+                    <WrapPanel>
+                        <Button Style="{StaticResource ChipButton}" Content="ALL KEYS" Command="{Binding SetKeyCommand}" CommandParameter="all">
+                            <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Key" /><Binding Source="all" /></MultiBinding></Button.Tag>
+                        </Button>
+                        <Button Style="{StaticResource ChipButton}" Content="MAJOR" Command="{Binding SetKeyCommand}" CommandParameter="maj">
+                            <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Key" /><Binding Source="maj" /></MultiBinding></Button.Tag>
+                        </Button>
+                        <Button Style="{StaticResource ChipButton}" Content="MINOR" Command="{Binding SetKeyCommand}" CommandParameter="min">
+                            <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Key" /><Binding Source="min" /></MultiBinding></Button.Tag>
+                        </Button>
+                        <TextBlock Text="{Binding Count}" Style="{StaticResource DimText}" VerticalAlignment="Center" Margin="8,0,0,6" />
+                    </WrapPanel>
+                </DockPanel>
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Items}" VirtualizingPanel.IsVirtualizing="True" />
+        </DockPanel>
+    </DataTemplate>
+
+    <!-- ===================================================== MY 88.8 -->
+
+    <DataTemplate DataType="{x:Type vm:RankItem}">
+        <Button Padding="10,6" BorderThickness="0" HorizontalContentAlignment="Stretch" Command="{Binding OpenCommand}">
+            <DockPanel>
+                <TextBlock Text="{Binding Rank}" Style="{StaticResource DimText}" Width="36" FontSize="13" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Count}" Style="{StaticResource DimText}" FontSize="13" />
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" />
+                    <TextBlock Text="{Binding Sub}" Style="{StaticResource DimText}" Visibility="{Binding Sub, Converter={StaticResource NullVis}}" />
+                </StackPanel>
+            </DockPanel>
+        </Button>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:MeViewModel}">
+        <DockPanel Margin="24,16,12,0">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,12,8">
+                <TextBlock Text="{Binding Heading}" Style="{StaticResource Heading}" />
+                <WrapPanel Margin="0,10,0,0">
+                    <Button Style="{StaticResource ChipButton}" Content="♥ FAVOURITES" Command="{Binding SetTabCommand}" CommandParameter="favs" Tag="{Binding IsFavs}" />
+                    <Button Style="{StaticResource ChipButton}" Content="HISTORY" Command="{Binding SetTabCommand}" CommandParameter="history" Tag="{Binding IsHistory}" />
+                    <Button Style="{StaticResource ChipButton}" Content="THIS MONTH" Command="{Binding SetTabCommand}" CommandParameter="month">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Tab" /><Binding Source="month" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="YEAR · WRAP-UP" Command="{Binding SetTabCommand}" CommandParameter="year" Tag="{Binding IsYear}" />
+                </WrapPanel>
+                <StackPanel Orientation="Horizontal" Visibility="{Binding IsYear, Converter={StaticResource Vis}}">
+                    <Button Style="{StaticResource Icon}" Content="&#xE76B;" Command="{Binding PrevYearCommand}" ToolTip="Previous year" />
+                    <TextBlock Text="{Binding Year}" FontSize="16" VerticalAlignment="Center" Margin="6,0" />
+                    <Button Style="{StaticResource Icon}" Content="&#xE76C;" Command="{Binding NextYearCommand}" ToolTip="Next year" />
+                </StackPanel>
+                <TextBlock Text="{Binding Note}" Style="{StaticResource DimText}" TextWrapping="Wrap" Margin="0,6,0,0" Visibility="{Binding Note, Converter={StaticResource NullVis}}" />
+                <TextBlock Text="Loading…" Style="{StaticResource DimText}" Margin="0,6,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding Message}" Foreground="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="{Binding Message, Converter={StaticResource NullVis}}" />
+            </StackPanel>
+            <Grid>
+                <!-- favourites -->
+                <DockPanel Visibility="{Binding IsFavs, Converter={StaticResource Vis}}">
+                    <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button Style="{StaticResource Primary}" Content="▶ PLAY FAVOURITES" Command="{Binding PlayFavsCommand}" Margin="0,0,8,0"
+                                Visibility="{Binding FavRows.Count, Converter={StaticResource NullVis}}" />
+                        <Button Content="↓ DOWNLOAD FAVOURITES" Command="{Binding DownloadFavsCommand}" Visibility="{Binding CanDownload, Converter={StaticResource Vis}}" />
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding FavRows}" />
+                </DockPanel>
+                <!-- history -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding IsHistory, Converter={StaticResource Vis}}">
+                    <ItemsControl ItemsSource="{Binding Sessions}" Margin="0,0,12,16">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,14">
+                                    <DockPanel Margin="0,0,0,4">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Summary}" Style="{StaticResource DimText}" />
+                                        <TextBlock Text="{Binding Header}" FontWeight="Bold" />
+                                    </DockPanel>
+                                    <ItemsControl ItemsSource="{Binding Tracks}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Padding="16,4,8,4" BorderThickness="0" HorizontalContentAlignment="Stretch" Command="{Binding PlayCommand}">
+                                                    <DockPanel>
+                                                        <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                                                            <TextBlock Text="{Binding Times}" Foreground="{StaticResource Rose}" FontWeight="Bold" HorizontalAlignment="Right" />
+                                                            <TextBlock Text="{Binding Year}" Style="{StaticResource DimText}" FontSize="10" />
+                                                        </StackPanel>
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Title}" />
+                                                            <TextBlock Text="{Binding Release}" Style="{StaticResource DimText}" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <!-- stats -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding IsStats, Converter={StaticResource Vis}}">
+                    <StackPanel Margin="0,0,12,16">
+                        <ItemsControl ItemsSource="{Binding Kpis}" ItemsPanel="{StaticResource Row}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource Panel}" Padding="16,10" Margin="0,0,10,10" MinWidth="140">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Value}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Rose}" />
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource DimText}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding StatsLabel, StringFormat=TOP TRACKS · {0}}" Style="{StaticResource Label}" Visibility="{Binding TopTracks.Count, Converter={StaticResource NullVis}}" />
+                        <ItemsControl ItemsSource="{Binding TopTracks}" />
+                        <TextBlock Text="TOP RELEASES" Style="{StaticResource Label}" Visibility="{Binding TopReleases.Count, Converter={StaticResource NullVis}}" />
+                        <ItemsControl ItemsSource="{Binding TopReleases}" />
+                        <TextBlock Text="TOP TAGS" Style="{StaticResource Label}" Visibility="{Binding TopTags.Count, Converter={StaticResource NullVis}}" />
+                        <ItemsControl ItemsSource="{Binding TopTags}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </DockPanel>
+    </DataTemplate>
+
+    <!-- ===================================================== account -->
+
+    <DataTemplate DataType="{x:Type vm:AccountViewModel}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="24,16,24,24" MaxWidth="560" HorizontalAlignment="Left">
+                <TextBlock Text="Account" Style="{StaticResource Heading}" />
+
+                <!-- signed out -->
+                <StackPanel Visibility="{Binding SignedIn, Converter={StaticResource NotVis}}" Margin="0,12,0,0">
+                    <TextBlock Text="Sign in with your thepowerstone.com account." Style="{StaticResource DimText}" FontSize="12" />
+                    <TextBlock Text="EMAIL" Style="{StaticResource Label}" />
+                    <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding ShowCode, Converter={x:Static c:Not.Instance}}" />
+                    <StackPanel Visibility="{Binding ShowPassword, Converter={StaticResource Vis}}">
+                        <TextBlock Text="PASSWORD" Style="{StaticResource Label}" />
+                        <PasswordBox x:Name="pw" />
+                        <Button Style="{StaticResource Primary}" Content="SIGN IN" HorizontalAlignment="Left" Margin="0,12,0,0"
+                                Tag="{Binding ElementName=pw}" Click="PasswordSignIn_Click" IsEnabled="{Binding Busy, Converter={x:Static c:Not.Instance}}" />
+                    </StackPanel>
+                    <Button Style="{StaticResource Primary}" Content="EMAIL ME A CODE" HorizontalAlignment="Left" Margin="0,12,0,0"
+                            Command="{Binding SendCodeCommand}" Visibility="{Binding ShowSend, Converter={StaticResource Vis}}" />
+                    <StackPanel Visibility="{Binding ShowCode, Converter={StaticResource Vis}}">
+                        <TextBlock Text="Enter the 6-digit code from the email. Not there? Check spam." Style="{StaticResource DimText}" Margin="0,12,0,0" />
+                        <TextBox Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" MaxLength="6" FontSize="18" Width="140" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button Style="{StaticResource Primary}" Content="SIGN IN" Command="{Binding VerifyCodeCommand}" Margin="0,0,8,0" />
+                            <Button Style="{StaticResource Link}" Content="CHANGE EMAIL" Command="{Binding ChangeEmailCommand}" VerticalAlignment="Center" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <Button Style="{StaticResource Link}" Content="{Binding MethodText}" Command="{Binding ToggleMethodCommand}" Margin="0,16,0,0" />
+                </StackPanel>
+
+                <!-- signed in -->
+                <StackPanel Visibility="{Binding SignedIn, Converter={StaticResource Vis}}" Margin="0,12,0,0">
+                    <TextBlock Text="{Binding Me.Email}" FontSize="14" />
+                    <TextBlock Text="{Binding Plan}" Foreground="{Binding Me.IsSubscriber, Converter={StaticResource RoseOrDim}}" />
+
+                    <StackPanel Visibility="{Binding Me.IsSubscriber, Converter={StaticResource NotVis}}">
+                        <TextBlock Text="SUBSCRIBE" Style="{StaticResource Label}" />
+                        <TextBlock Text="The full remastered catalogue, unreleased &amp; rare trax, music videos, repeat and more. Checkout opens in your browser (Stripe)."
+                                   Style="{StaticResource DimText}" TextWrapping="Wrap" />
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button Style="{StaticResource Primary}" Content="{Binding MonthPrice}" Command="{Binding SubscribeMonthCommand}" Margin="0,0,8,0" />
+                            <Button Content="{Binding YearPrice}" Command="{Binding SubscribeYearCommand}" Margin="0,0,8,0" />
+                            <Button Style="{StaticResource Link}" Content="I've paid — refresh" Command="{Binding RecheckCommand}" VerticalAlignment="Center" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <Button Content="MANAGE SUBSCRIPTION" Command="{Binding ManageCommand}" HorizontalAlignment="Left" Margin="0,12,0,0"
+                            Visibility="{Binding CanManage, Converter={StaticResource Vis}}" />
+
+                    <TextBlock Text="PASSWORD" Style="{StaticResource Label}" />
+                    <TextBlock Text="{Binding PasswordNote}" Style="{StaticResource DimText}" TextWrapping="Wrap" />
+                    <Button Style="{StaticResource Link}" Content="{Binding PasswordAction}" Command="{Binding StartPasswordCommand}" Margin="0,6,0,0" />
+                    <StackPanel Visibility="{Binding ChangingPassword, Converter={StaticResource Vis}}" Margin="0,6,0,0">
+                        <TextBlock Text="New password · 8+ characters" Style="{StaticResource DimText}" />
+                        <PasswordBox x:Name="newpw" Margin="0,4,0,0" />
+                        <Button Style="{StaticResource Primary}" Content="SAVE PASSWORD" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                Tag="{Binding ElementName=newpw}" Click="SetPassword_Click" />
+                    </StackPanel>
+                    <Button Content="SIGN OUT" HorizontalAlignment="Left" Margin="0,24,0,0" Command="{Binding SignOutCommand}" />
+                </StackPanel>
+
+                <TextBlock Text="Working…" Style="{StaticResource DimText}" Margin="0,10,0,0" Visibility="{Binding Busy, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding Message}" Foreground="{StaticResource Rose}" TextWrapping="Wrap" Margin="0,10,0,0" Visibility="{Binding Message, Converter={StaticResource NullVis}}" />
+
+                <TextBlock Text="DOWNLOADS" Style="{StaticResource Label}" Margin="0,28,0,6" />
+                <TextBlock Text="Subscribers can download releases, playlists and favourites (↓ buttons) to listen offline. They play offline for 30 days after your subscription was last confirmed, and are removed if you sign out or the subscription ends."
+                           Style="{StaticResource DimText}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding OfflineSummary}" Margin="0,6,0,0" />
+                <Button Content="REMOVE ALL DOWNLOADS" Command="{Binding RemoveAllDownloadsCommand}" HorizontalAlignment="Left" Margin="0,8,0,0" />
+
+                <TextBlock Text="AUDIO QUALITY" Style="{StaticResource Label}" Margin="0,28,0,6" />
+                <WrapPanel>
+                    <Button Style="{StaticResource ChipButton}" Content="AUTO" Command="{Binding SetQualityCommand}" CommandParameter="Auto">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Quality" /><Binding Source="Auto" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="HIGH · 320" Command="{Binding SetQualityCommand}" CommandParameter="High">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Quality" /><Binding Source="High" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="STANDARD · 160" Command="{Binding SetQualityCommand}" CommandParameter="Std">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Quality" /><Binding Source="Std" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="DATA SAVER · 64" Command="{Binding SetQualityCommand}" CommandParameter="Lo">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Quality" /><Binding Source="Lo" /></MultiBinding></Button.Tag>
+                    </Button>
+                </WrapPanel>
+                <TextBlock Text="{Binding QualityNote}" Style="{StaticResource DimText}" TextWrapping="Wrap" />
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+
+    <!-- ===================================================== sound -->
+
+    <DataTemplate DataType="{x:Type vm:SoundViewModel}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="24,16,24,24" MaxWidth="640" HorizontalAlignment="Left">
+                <TextBlock Text="Sound · 音" Style="{StaticResource Heading}" />
+                <c:Visualizer Height="90" Margin="0,14,0,0" Source="{Binding Player.Engine.Spectrum}" IsActive="{Binding Player.IsPlaying}" />
+                <TextBlock Text="Click the visualizer to change its style." Style="{StaticResource DimText}" />
+
+                <DockPanel Margin="0,10,0,0">
+                    <Button DockPanel.Dock="Right" Content="FLAT" Command="{Binding FlatCommand}" />
+                    <TextBlock Text="EQ · 3-BAND" Style="{StaticResource Label}" />
+                </DockPanel>
+                <TextBlock Text="Splits at 250 Hz and 4 kHz like a DJ mixer. KILL mutes a band; ISO plays only that band." Style="{StaticResource DimText}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding Bands}" Margin="0,8,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                                <Slider Grid.Column="1" Minimum="0" Maximum="1.5" Value="{Binding Level}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{Binding Percent}" Style="{StaticResource DimText}" VerticalAlignment="Center" TextAlignment="Right" />
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="10,6,0,0">
+                                    <ToggleButton Style="{StaticResource Chip}" Content="KILL" IsChecked="{Binding Kill}" />
+                                    <ToggleButton Style="{StaticResource Chip}" Content="ISO" IsChecked="{Binding Iso}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="VINYL STOP · ビニールストップ" Style="{StaticResource Label}" Margin="0,22,0,6" />
+                <TextBlock Text="Pausing winds the record down like a turntable losing power; playing spins it back up. Works from media keys too."
+                           Style="{StaticResource DimText}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <WrapPanel>
+                    <Button Style="{StaticResource ChipButton}" Content="OFF" Command="{Binding SetVinylCommand}" CommandParameter="Off">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Vinyl" /><Binding Source="Off" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="SHORT" Command="{Binding SetVinylCommand}" CommandParameter="Short">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Vinyl" /><Binding Source="Short" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="MEDIUM" Command="{Binding SetVinylCommand}" CommandParameter="Medium">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Vinyl" /><Binding Source="Medium" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="LONG" Command="{Binding SetVinylCommand}" CommandParameter="Long">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Vinyl" /><Binding Source="Long" /></MultiBinding></Button.Tag>
+                    </Button>
+                </WrapPanel>
+
+                <TextBlock Text="CROSSFADE" Style="{StaticResource Label}" Margin="0,22,0,6" />
+                <TextBlock Text="Blends one track into the next in shuffles and playlists. Albums stay gapless — many of these tapes run track into track."
+                           Style="{StaticResource DimText}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <WrapPanel>
+                    <Button Style="{StaticResource ChipButton}" Content="OFF" Command="{Binding SetCrossfadeCommand}" CommandParameter="0">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="0" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="2 S" Command="{Binding SetCrossfadeCommand}" CommandParameter="2">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="2" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="4 S" Command="{Binding SetCrossfadeCommand}" CommandParameter="4">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="4" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="6 S" Command="{Binding SetCrossfadeCommand}" CommandParameter="6">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="6" /></MultiBinding></Button.Tag>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Content="8 S" Command="{Binding SetCrossfadeCommand}" CommandParameter="8">
+                        <Button.Tag><MultiBinding Converter="{StaticResource Eq}"><Binding Path="Crossfade" /><Binding Source="8" /></MultiBinding></Button.Tag>
+                    </Button>
+                </WrapPanel>
+
+                <TextBlock Text="MUSIC VIDEOS" Style="{StaticResource Label}" Margin="0,22,0,6" />
+                <CheckBox Content="Show the video for tracks that have one (subscribers) in Now playing" IsChecked="{Binding VideoOn}" />
+
+                <TextBlock Text="VISUALIZER" Style="{StaticResource Label}" Margin="0,22,0,6" />
+                <CheckBox Content="Analyse the audio for the visualizer" IsChecked="{Binding VisualizerOn}" />
+
+                <TextBlock Text="VOLUME" Style="{StaticResource Label}" Margin="0,22,0,6" />
+                <Slider Minimum="0" Maximum="1" Value="{Binding Player.Volume}" />
+            </StackPanel>
+        </ScrollViewer>
+    </DataTemplate>
+
+    <!-- ===================================================== now playing -->
+
+    <DataTemplate DataType="{x:Type vm:NowPlayingViewModel}">
+        <Grid Margin="24,8,12,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="520" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <Viewbox Stretch="Uniform" MaxHeight="440" HorizontalAlignment="Left">
+                    <Grid Width="440" Height="440">
+                        <Border Background="{StaticResource Panel}">
+                            <Image Source="{Binding Player.Cover, Converter={StaticResource ImgBig}}" Stretch="UniformToFill" />
+                        </Border>
+                        <!-- Music video (subscribers), muted and locked to the audio; covers the art once loaded -->
+                        <c:SyncedVideo Source="{Binding Player.VideoPath}" Playing="{Binding Player.IsPlaying}" Position="{Binding Player.Position}" />
+                    </Grid>
+                </Viewbox>
+                <c:Visualizer Height="80" Margin="0,10,0,0" Source="{Binding Player.Engine.Spectrum}" IsActive="{Binding Player.IsPlaying}" />
+                <TextBlock Text="{Binding Player.Title}" Style="{StaticResource Heading}" Margin="0,12,0,0" />
+                <TextBlock Text="{Binding Player.Subtitle}" Style="{StaticResource DimText}" FontSize="13" />
+                <TextBlock Text="{Binding Player.Meta}" Style="{StaticResource DimText}" />
+            </StackPanel>
+            <DockPanel Grid.Column="1" Margin="24,0,0,0">
+                <TextBlock DockPanel.Dock="Top" Text="UP NEXT" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                <ListBox ItemsSource="{Binding Queue}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Button Padding="8,5" BorderThickness="0" HorizontalContentAlignment="Stretch" Command="{Binding PlayCommand}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" Foreground="{Binding IsCurrent, Converter={StaticResource RoseIfTrue}}" />
+                                    <TextBlock Text="{Binding Sub}" Style="{StaticResource DimText}" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

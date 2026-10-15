@@ -1,0 +1,7 @@
+<!-- Checked = playing (shows pause). Android 12+ animates between them right under your thumb. -->
+<animated-selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/w_s_pause" android:state_checked="true" android:drawable="@drawable/w_ic_pause" />
+    <item android:id="@+id/w_s_play" android:drawable="@drawable/w_ic_play" />
+    <transition android:fromId="@id/w_s_play" android:toId="@id/w_s_pause" android:drawable="@drawable/w_play_to_pause" />
+    <transition android:fromId="@id/w_s_pause" android:toId="@id/w_s_play" android:drawable="@drawable/w_pause_to_play" />
+</animated-selector>

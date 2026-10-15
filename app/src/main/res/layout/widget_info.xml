@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The info line (Silkscreen): still while paused; while playing it rotates release · details · up next. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <ImageView android:id="@+id/w_sub" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" />
+    <ViewFlipper android:id="@+id/w_flip" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:autoStart="true" android:flipInterval="4500" android:visibility="gone"
+        android:inAnimation="@anim/w_in" android:outAnimation="@anim/w_out">
+        <ImageView android:id="@+id/w_f1" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" />
+        <ImageView android:id="@+id/w_f2" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" />
+        <ImageView android:id="@+id/w_f3" android:layout_width="match_parent" android:layout_height="wrap_content" android:scaleType="fitStart" android:contentDescription="@null" />
+    </ViewFlipper>
+</FrameLayout>

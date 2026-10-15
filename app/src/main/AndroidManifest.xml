@@ -6,6 +6,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- The widget grants the home screen app read access to its cover files. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+    </queries>
+
     <application
         android:name=".PowerstoneApp"
         android:allowBackup="false"
@@ -19,11 +27,19 @@
             android:name=".ui.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="false"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"
             android:windowSoftInputMode="adjustResize">
+            <!-- Split-screen / freeform: smallest window that still fits the transport controls. -->
+            <layout
+                android:minWidth="280dp"
+                android:minHeight="220dp" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
             <!-- Open 88.8FM links (?r= ?t= ?s= ?tag= ?wrap= ?me) in the app. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -35,6 +51,57 @@
                 <data android:path="/" />
             </intent-filter>
         </activity>
+
+        <!-- Now playing over the lock screen (opened from the media notification). -->
+        <activity
+            android:name=".ui.LockScreenActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:taskAffinity="com.st000ps.powerstone.lock"
+            android:theme="@style/Theme.Powerstone" />
+
+        <receiver
+            android:name=".widget.PlayerWidget"
+            android:exported="false"
+            android:label="88.8FM">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/player_widget_info" />
+        </receiver>
+
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:label="88.8FM widget"
+            android:theme="@style/Theme.Powerstone">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".playback.StationTile"
+            android:exported="true"
+            android:icon="@drawable/ic_tile"
+            android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data android:name="android.service.quicksettings.ACTIVE_TILE" android:value="false" />
+        </service>
+
+        <provider
+            android:name=".widget.WidgetArtProvider"
+            android:authorities="${applicationId}.widgetart"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <service
             android:name=".playback.PlaybackService"

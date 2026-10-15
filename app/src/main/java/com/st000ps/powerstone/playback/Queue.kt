@@ -22,7 +22,9 @@ object Queue {
         item?.mediaMetadata?.extras?.getString(KIND)?.let { runCatching { QueueKind.valueOf(it) }.getOrNull() }
 
     fun mediaItem(app: PowerstoneApp, release: Release, track: Track, kind: QueueKind): MediaItem? {
-        val url = Api.absolute(track.streamPath(app.me.value.isSubscriber, app.resolvedQuality())) ?: return null
+        // A downloaded copy plays from the device; otherwise stream.
+        val url = app.offline.fileFor(trackId(release, track))?.let { Uri.fromFile(it).toString() }
+            ?: Api.absolute(track.streamPath(app.me.value.isSubscriber, app.resolvedQuality())) ?: return null
         val extras = Bundle().apply {
             putString(KIND, kind.name)
             track.video?.let { putString(VIDEO, Api.absolute(it)) }
@@ -72,6 +74,10 @@ object Queue {
                 .filter { (r, t) -> trackId(r, t).let { id -> id !in heard && id !in picked && id !in avoid } }
             var p = pool()
             if (p.isEmpty()) { heard = emptySet(); app.settings.shuffleHeard = emptySet(); p = pool() }
+            if (p.isEmpty() && avoid.isNotEmpty()) {
+                // Everything is "avoided" (a very long shuffle): ignore that rather than stop.
+                p = rels.flatMap { r -> r.tracks.map { r to it } }.filter { (r, t) -> trackId(r, t) !in picked }
+            }
             if (p.isEmpty()) return out
             // pick a release first (each equally likely), then a track in it — same feel as the site
             val byRel = p.groupBy { it.first.id }

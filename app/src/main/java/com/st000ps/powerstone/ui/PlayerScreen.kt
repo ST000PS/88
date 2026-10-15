@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -35,6 +38,8 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -116,6 +121,139 @@ fun MiniPlayer(state: UiState, vm: AppViewModel, expand: () -> Unit) {
 
 @Composable
 fun PlayerScreen(state: UiState, vm: AppViewModel, close: () -> Unit, openSound: () -> Unit, openRelease: (String) -> Unit) {
+    // Adapts to whatever window it gets, including split-screen and freeform windows:
+    //  - tall:  stacked (artwork, then controls)
+    //  - short: artwork shrinks so the transport stays on screen
+    //  - wide and short (landscape / side-by-side split): artwork left, controls right
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val wide = maxWidth > maxHeight && maxHeight < 600.dp
+        val short = !wide && maxHeight < 560.dp
+        val compact = wide || short
+        if (wide) {
+            // Leave room under the artwork for the visualizer strip when it's on.
+            val side = minOf(maxWidth * 0.45f, maxHeight - 16.dp - if (state.visualizerOn) 96.dp else 0.dp).coerceAtLeast(96.dp)
+            Row(Modifier.fillMaxSize().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.width(side)) {
+                    PlayerMedia(state, vm, openRelease, Modifier.width(side))
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) {
+                    PlayerHeader(state, vm, close, openSound)
+                    PlayerControls(state, vm, openRelease, compact = true)
+                }
+            }
+        } else {
+            val artSize = if (short) (maxHeight * 0.3f).coerceAtLeast(96.dp) else null
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                PlayerHeader(state, vm, close, openSound)
+                PlayerMedia(state, vm, openRelease, if (artSize != null) Modifier.height(artSize) else Modifier.fillMaxWidth())
+                Spacer(Modifier.height(if (compact) 4.dp else 12.dp))
+                PlayerControls(state, vm, openRelease, compact)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerHeader(state: UiState, vm: AppViewModel, close: () -> Unit, openSound: () -> Unit) {
+    val now = state.now
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = close) { Icon(Icons.Filled.KeyboardArrowDown, "Close") }
+        Text(
+            when (now.kind) { QueueKind.SHUFFLE -> "SHUFFLE"; QueueKind.ALBUM -> "ALBUM"; else -> "NOW PLAYING" },
+            style = MaterialTheme.typography.labelMedium, color = Dim, modifier = Modifier.weight(1f),
+        )
+        if (now.video != null) IconButton(onClick = { vm.setVideoOn(!state.videoOn) }) {
+            Icon(if (state.videoOn) Icons.Filled.Videocam else Icons.Filled.VideocamOff, "Video", tint = if (state.videoOn) Rose else Dim)
+        }
+        SleepButton(state, vm)
+        IconButton(onClick = openSound) { Icon(Icons.Filled.Equalizer, "Sound") }
+    }
+}
+
+/** Sleep timer: pause (with the vinyl stop) after a while, or at the end of this track. */
+@Composable
+private fun SleepButton(state: UiState, vm: AppViewModel) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) { Icon(Icons.Filled.Bedtime, "Sleep timer", tint = if (state.sleep.active) Rose else Dim) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            Text("SLEEP TIMER", style = MaterialTheme.typography.labelSmall, color = Dim, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+            listOf(15, 30, 45, 60, 90).forEach { m ->
+                DropdownMenuItem(text = { Text(if (m < 60) "$m minutes" else if (m == 60) "1 hour" else "1½ hours") }, onClick = { open = false; vm.setSleep(m) })
+            }
+            DropdownMenuItem(text = { Text("End of this track") }, onClick = { open = false; vm.setSleep(null, endOfTrack = true) })
+            if (state.sleep.active) {
+                HorizontalDivider()
+                DropdownMenuItem(text = { Text("Off") }, onClick = { open = false; vm.setSleep(null) })
+            }
+        }
+    }
+}
+
+/** "SLEEP 23:10" / "SLEEP · END OF TRACK", ticking once a second. */
+@Composable
+private fun SleepLabel(state: UiState) {
+    val s = state.sleep
+    if (!s.active) return
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(s) { while (true) { now = System.currentTimeMillis(); delay(1000) } }
+    Text(
+        if (s.endOfTrack) "SLEEP · END OF TRACK" else "SLEEP " + formatDuration(((s.endAt ?: now) - now).coerceAtLeast(0) / 1000.0),
+        style = MaterialTheme.typography.labelSmall, color = Rose,
+    )
+}
+
+/** The rest of the queue; tap to jump. */
+@Composable
+private fun UpNext(state: UiState, vm: AppViewModel) {
+    if (state.queue.size < 2) return
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Text("UP NEXT", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Rose, modifier = Modifier.padding(vertical = 8.dp))
+        state.queue.forEach { q ->
+            Row(Modifier.fillMaxWidth().clickable { vm.jumpTo(q.index) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(q.title, color = if (q.current) Rose else MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(q.album, style = MaterialTheme.typography.bodySmall, color = Dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (q.current) Text("NOW", style = MaterialTheme.typography.labelSmall, color = Rose)
+            }
+        }
+    }
+}
+
+/**
+ * Artwork (or the music video) plus the visualizer. [size] fixes either the
+ * width or the height; the other side follows the aspect ratio.
+ */
+@Composable
+private fun PlayerMedia(state: UiState, vm: AppViewModel, openRelease: (String) -> Unit, size: Modifier) {
+    val now = state.now
+    val current = now.mediaId?.let(vm::lookup)
+    val sub = state.me.isSubscriber
+    if (now.video != null && state.videoOn && sub) {
+        VideoPane(now.video, now.isPlaying, vm, size.aspectRatio(16 / 9f, matchHeightConstraintsFirst = true))
+    } else {
+        Box(size.aspectRatio(1f, matchHeightConstraintsFirst = true)) {
+            AsyncImage(
+                now.artwork, now.album, contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.small).background(Panel)
+                    .clickable { current?.let { openRelease(it.first.id) } },
+            )
+            if (now.video != null && state.videoOn && !sub) Text(
+                "MUSIC VIDEO — SUBSCRIBERS", style = MaterialTheme.typography.labelSmall, color = Color.White,
+                modifier = Modifier.align(Alignment.BottomStart).background(Rose).padding(6.dp),
+            )
+        }
+    }
+    if (state.visualizerOn) VisualizerStrip(now.isPlaying)
+}
+
+@Composable
+private fun PlayerControls(state: UiState, vm: AppViewModel, openRelease: (String) -> Unit, compact: Boolean) {
     val now = state.now
     var dragging by remember { mutableStateOf(false) }
     var dragPos by remember { mutableFloatStateOf(0f) }
@@ -123,105 +261,83 @@ fun PlayerScreen(state: UiState, vm: AppViewModel, close: () -> Unit, openSound:
     val id = now.mediaId
     val current = id?.let(vm::lookup)
     val sub = state.me.isSubscriber
-    val showVideo = now.video != null && state.videoOn && sub
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = close) { Icon(Icons.Filled.KeyboardArrowDown, "Close") }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
             Text(
-                when (now.kind) { QueueKind.SHUFFLE -> "SHUFFLE"; QueueKind.ALBUM -> "ALBUM"; else -> "NOW PLAYING" },
-                style = MaterialTheme.typography.labelMedium, color = Dim, modifier = Modifier.weight(1f),
+                now.title, fontWeight = FontWeight.Bold, maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis,
+                style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
             )
-            if (now.video != null) IconButton(onClick = { vm.setVideoOn(!state.videoOn) }) {
-                Icon(if (state.videoOn) Icons.Filled.Videocam else Icons.Filled.VideocamOff, "Video", tint = if (state.videoOn) Rose else Dim)
-            }
-            IconButton(onClick = openSound) { Icon(Icons.Filled.Equalizer, "Sound") }
-        }
-        if (showVideo) {
-            VideoPane(now.video!!, now.isPlaying, vm)
-        } else {
-            Box {
-                AsyncImage(
-                    now.artwork, now.album, contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.small).background(Panel)
-                        .clickable { current?.let { openRelease(it.first.id) } },
-                )
-                if (now.video != null && state.videoOn && !sub) Text(
-                    "MUSIC VIDEO — SUBSCRIBERS", style = MaterialTheme.typography.labelSmall, color = Color.White,
-                    modifier = Modifier.align(Alignment.BottomStart).background(Rose).padding(6.dp),
-                )
+            Text("${now.artist} · ${now.album}", color = Dim, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clickable { current?.let { openRelease(it.first.id) } })
+            current?.second?.let { t ->
+                val meta = listOfNotNull(t.bpm?.let { "$it BPM" }, t.key?.let { "KEY $it" + (t.keyJa?.let { j -> " · $j" } ?: "") }).joinToString(" · ")
+                if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.bodySmall, color = Dim)
             }
         }
-        if (state.visualizerOn) VisualizerStrip(now.isPlaying)
-        Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(now.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 2)
-                Text("${now.artist} · ${now.album}", color = Dim, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { current?.let { openRelease(it.first.id) } })
-                current?.second?.let { t ->
-                    val meta = listOfNotNull(t.bpm?.let { "$it BPM" }, t.key?.let { "KEY $it" + (t.keyJa?.let { j -> " · $j" } ?: "") }).joinToString(" · ")
-                    if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.bodySmall, color = Dim)
-                }
-            }
-            if (state.me.signedIn && id != null) {
-                val fav = id in state.favs
-                IconButton(onClick = { vm.toggleFav(id) }) {
-                    Icon(if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Favourite", tint = if (fav) Rose else Dim)
-                }
-            }
-            if (current != null) Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    TrackMenuItems(current.first, current.second, state, vm) { menu = false }
-                }
+        if (state.me.signedIn && id != null) {
+            val fav = id in state.favs
+            IconButton(onClick = { vm.toggleFav(id) }) {
+                Icon(if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Favourite", tint = if (fav) Rose else Dim)
             }
         }
-        Spacer(Modifier.height(8.dp))
-        val duration = now.durationMs.coerceAtLeast(1)
-        Slider(
-            value = if (dragging) dragPos else now.positionMs.toFloat() / duration,
-            onValueChange = { dragging = true; dragPos = it },
-            onValueChangeFinished = { vm.seekTo((dragPos * duration).toLong()); dragging = false },
-        )
-        Row(Modifier.fillMaxWidth()) {
-            Text(formatDuration(now.positionMs / 1000.0), style = MaterialTheme.typography.bodySmall, color = Dim)
-            Spacer(Modifier.weight(1f))
-            if (!sub) Text("PREVIEW", style = MaterialTheme.typography.labelSmall, color = Rose)
-            Spacer(Modifier.weight(1f))
-            Text(formatDuration(now.durationMs / 1000.0), style = MaterialTheme.typography.bodySmall, color = Dim)
-        }
-        Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = vm::smartShuffle) {
-                Icon(Icons.Filled.Shuffle, "Shuffle the catalogue", tint = if (now.kind == QueueKind.SHUFFLE) Rose else Dim)
-            }
-            IconButton(onClick = vm::previous) { Icon(Icons.Filled.SkipPrevious, "Previous", Modifier.size(36.dp)) }
-            FilledIconButton(
-                onClick = vm::togglePlay, modifier = Modifier.size(72.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Rose),
-            ) {
-                if (now.isBuffering && !now.isPlaying) CircularProgressIndicator(Modifier.size(28.dp), color = Color.White)
-                else Icon(if (now.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "Play/pause", Modifier.size(40.dp))
-            }
-            IconButton(onClick = vm::next, enabled = now.hasNext) { Icon(Icons.Filled.SkipNext, "Next", Modifier.size(36.dp)) }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                IconButton(onClick = { vm.setRepeat(Player.REPEAT_MODE_ONE) }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Filled.RepeatOne, "Repeat 1", tint = if (now.repeatMode == Player.REPEAT_MODE_ONE) Rose else Dim)
-                }
-                IconButton(onClick = { vm.setRepeat(Player.REPEAT_MODE_ALL) }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Filled.Repeat, "Repeat tape", tint = if (now.repeatMode == Player.REPEAT_MODE_ALL) Rose else Dim)
-                }
+        if (current != null) Box {
+            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
+            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                TrackMenuItems(current.first, current.second, state, vm) { menu = false }
             }
         }
-        Spacer(Modifier.height(24.dp))
     }
+    val duration = now.durationMs.coerceAtLeast(1)
+    Slider(
+        value = if (dragging) dragPos else now.positionMs.toFloat() / duration,
+        onValueChange = { dragging = true; dragPos = it },
+        onValueChangeFinished = { vm.seekTo((dragPos * duration).toLong()); dragging = false },
+    )
+    Row(Modifier.fillMaxWidth()) {
+        Text(formatDuration(now.positionMs / 1000.0), style = MaterialTheme.typography.bodySmall, color = Dim)
+        Spacer(Modifier.weight(1f))
+        if (!sub) Text("PREVIEW", style = MaterialTheme.typography.labelSmall, color = Rose)
+        Spacer(Modifier.weight(1f))
+        Text(formatDuration(now.durationMs / 1000.0), style = MaterialTheme.typography.bodySmall, color = Dim)
+    }
+    Spacer(Modifier.height(if (compact) 4.dp else 12.dp))
+    val big = if (compact) 56.dp else 72.dp
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = vm::smartShuffle) {
+            Icon(Icons.Filled.Shuffle, "Shuffle the catalogue", tint = if (now.kind == QueueKind.SHUFFLE) Rose else Dim)
+        }
+        IconButton(onClick = vm::previous) { Icon(Icons.Filled.SkipPrevious, "Previous", Modifier.size(36.dp)) }
+        FilledIconButton(
+            onClick = vm::togglePlay, modifier = Modifier.size(big),
+            colors = IconButtonDefaults.filledIconButtonColors(containerColor = Rose),
+        ) {
+            if (now.isBuffering && !now.isPlaying) CircularProgressIndicator(Modifier.size(28.dp), color = Color.White)
+            else Icon(if (now.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "Play/pause", Modifier.size(big * 0.55f))
+        }
+        IconButton(onClick = vm::next, enabled = now.hasNext) { Icon(Icons.Filled.SkipNext, "Next", Modifier.size(36.dp)) }
+        // Side by side when space is tight, stacked otherwise.
+        val repeatOne: @Composable () -> Unit = {
+            IconButton(onClick = { vm.setRepeat(Player.REPEAT_MODE_ONE) }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Filled.RepeatOne, "Repeat 1", tint = if (now.repeatMode == Player.REPEAT_MODE_ONE) Rose else Dim)
+            }
+        }
+        val repeatTape: @Composable () -> Unit = {
+            IconButton(onClick = { vm.setRepeat(Player.REPEAT_MODE_ALL) }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Filled.Repeat, "Repeat tape", tint = if (now.repeatMode == Player.REPEAT_MODE_ALL) Rose else Dim)
+            }
+        }
+        if (compact) Row { repeatOne(); repeatTape() } else Column(horizontalAlignment = Alignment.CenterHorizontally) { repeatOne(); repeatTape() }
+    }
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { SleepLabel(state) }
+    UpNext(state, vm)
+    Spacer(Modifier.height(if (compact) 8.dp else 24.dp))
 }
 
 /** Music video, muted and locked to the audio clock (re-synced when it drifts > 250 ms), as on the site. */
 @OptIn(UnstableApi::class)
 @Composable
-private fun VideoPane(url: String, playing: Boolean, vm: AppViewModel) {
+private fun VideoPane(url: String, playing: Boolean, vm: AppViewModel, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     val player = remember(url) {
         ExoPlayer.Builder(ctx)
@@ -246,7 +362,7 @@ private fun VideoPane(url: String, playing: Boolean, vm: AppViewModel) {
     AndroidView(
         factory = { c -> PlayerView(c).apply { useController = false; resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT; setShutterBackgroundColor(android.graphics.Color.BLACK); this.player = player } },
         update = { it.player = player },
-        modifier = Modifier.fillMaxWidth().aspectRatio(16 / 9f).background(Color.Black),
+        modifier = modifier.background(Color.Black),
     )
 }
 
@@ -330,6 +446,14 @@ fun SoundScreen(state: UiState, vm: AppViewModel, back: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = Dim)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 VinylStop.entries.forEach { v -> Pill(v.label.uppercase(), state.vinyl == v) { vm.setVinyl(v) } }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Text("CROSSFADE", style = MaterialTheme.typography.labelLarge, color = Dim)
+            Text("Fades the end of one track out and the next one in, in shuffles and playlists. Albums stay gapless — many of these tapes run track into track.",
+                style = MaterialTheme.typography.bodySmall, color = Dim)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(0, 2, 4, 6, 8).forEach { s -> Pill(if (s == 0) "OFF" else "$s S", state.crossfade == s) { vm.setCrossfade(s) } }
             }
 
             Spacer(Modifier.height(16.dp))

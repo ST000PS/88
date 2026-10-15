@@ -1,0 +1,5 @@
+<!-- The play key: light, the one bright key on the panel. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true"><shape><solid android:color="#FFB8B8B8" /></shape></item>
+    <item><shape><solid android:color="#FFE4E4E4" /></shape></item>
+</selector>

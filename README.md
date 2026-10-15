@@ -1,5 +1,7 @@
 # 88.8FM for Android
 
+> There's also a native **Windows** app in [`windows/`](windows/README.md).
+
 A personal native Android client for [thepowerstone.com](https://thepowerstone.com), the 88.8FM
 Knxwledge catalogue. It talks to the same JSON API the website uses. You sign in with your own
 account, and the server decides what you can hear: guests get the 28-second previews, and
@@ -33,6 +35,59 @@ headset controls)
 - **Visualizer**: a live spectrum of the audio after the EQ, with four styles (tap to switch).
 - Audio quality: Auto (by connection), 320, 160 or 64 kbps.
 
+**Home-screen widget, sleep timer, resume**
+- **Widget**, in knxwledge.com's own look, monochrome:
+  - **Look:** near-black and square, with 1px `#222` hairlines and a film-grain layer. Text is in
+    Silkscreen, the pixel font his site uses (bundled under the SIL Open Font License, see
+    `assets/fonts/Silkscreen-OFL.txt`), with small Japanese sub-labels. Black, greys and white only.
+  - **Sizes:**
+    - **4×1 row:** a full-height cover, title, the site's thin-bar visualizer, keys and a progress
+      hairline.
+    - **Card:** a big cover beside the header, title and time; the sample strip; keys.
+    - **Big card:** the cover, big, beside a 4×4 pad grid; then the title, the sample strip and
+      five keys. Wide widgets get a bigger cover and pads.
+  - **Pads that play the track's groove:**
+    - The first time a track plays, the app decodes about 16 s of it (downloaded tracks always;
+      streams only on unmetered networks).
+    - It splits the audio into low, mid and high bands and folds their onsets onto the bar at the
+      track's BPM, to find where its kicks, snares and hats land.
+    - It then picks the nearest patterns from a built-in library (`audio/Groove.kt`), and
+      remembers them per track.
+    - The pads stack four looping layers (kick, snare, hats, sample chops) at about that tempo.
+      Lit pads glow from beneath, bloom onto the gutter and press down on each hit.
+    - The layers are stable views, so the once-a-second refresh doesn't restart them.
+  - **The sample strip:** the track drawn as a sliced waveform (stylised, the same picture every
+    time for a track) with a white playhead on progress. Below it, a 16-step sequencer marks the
+    groove's kicks and snares, with a playhead walking each bar.
+  - **Motion:** it only moves while playing. Paused, the pads rest; closed, everything is unlit
+    and it shows the last track and today's listening.
+  - **Android 12+:** play/pause morph and the heart pops on tap.
+  - **Per-widget settings** (long-press → settings): pads, record or cover; motion or still.
+  - **How it's drawn:** widgets can only use system fonts, so the app renders the pixel text and
+    waveforms to small cached images. They reach the launcher as content:// links, like the covers.
+  - `WidgetRenderTest` draws every state to `app/build/widget-shots/`, and CI uploads them as
+    **widget-renders**. `GrooveTest` checks the groove detection on synthetic beats.
+- **Sleep timer** (moon button on the player): 15–90 minutes or the end of the current track. It
+  pauses with the vinyl stop.
+- **Up next**: the queue on the player screen. Tap a track to jump to it.
+- **Resume where you left off**: the queue and position are saved and come back paused on the next
+  launch. Bluetooth play buttons and Android's media resumption can also restart them.
+
+**Offline, crossfade, lock screen**
+- **Downloads** (subscribers): ↓ on a release, a playlist or favourites keeps the tracks on the
+  phone, and they play from there instead of streaming.
+  - Stored in the app's private storage, not as loose MP3s.
+  - Playable offline for 30 days after the subscription was last confirmed.
+  - Deleted on sign-out or when the site says the account isn't subscribed.
+  - A failed network check never deletes anything.
+  - Account → Downloads shows the space used and has *Remove all*.
+- **Crossfade** (Sound: off / 2–8 s): fades the end of one track out and the next one in, in
+  shuffles and playlists. Albums stay gapless. Android's player can't overlap two tracks, so this
+  is a fade-out and fade-in rather than a true overlap (the Windows app does a true overlap).
+- **Lock screen**: the media controls (lock screen, notification, quick settings) get ♥ favourite
+  and shuffle-everything buttons. Tapping the notification on the lock screen opens a full
+  now-playing screen over it, without unlocking.
+
 **Playlists & sharing**
 - Create, rename, reorder, remove tracks and delete playlists. They sync with your account (the
   site's `/api/playlists`, including deletions). Playlists made while signed out are merged in
@@ -50,7 +105,20 @@ headset controls)
   releases and top tags.
 - Signed out, history and stats come from what you've played on this device.
 
+**Quick access & data**
+- **App shortcuts** (long-press the icon): Shuffle everything, and Resume where you left off.
+- **Quick Settings tile** "88.8FM": play or pause from the shade; with nothing loaded it opens the
+  app and resumes or starts the station.
+- **Audio cache** (1 GB, least-recently-played out first): replays cost no data and start
+  instantly, and the widget's groove analysis reads from it instead of downloading again.
+  Full-length audio in it is cleared when the account isn't subscribed, like downloads.
+- Covers load through the API's connection pool, with a 256 MB disk cache.
+
 **Account**
+- **Stay signed in:** password sign-in can remember the account on the phone, encrypted with a key
+  held in the Android Keystore, and never in the code or backups. If the site's session ends, the
+  app signs back in quietly: at startup, when the app opens, before playback, and if a stream
+  returns 401. Signing out forgets it.
 - Sign in with an emailed 6-digit code or a password; you stay signed in. You can make or change
   a password.
 - Subscribe monthly or yearly, or manage your subscription. These open Stripe in your browser,

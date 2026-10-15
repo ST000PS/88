@@ -1,0 +1,117 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Caches Gradle and checks the wrapper jar is the genuine one.
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build, unit tests and lint
+        run: ./gradlew assembleDebug testDebugUnitTest lintDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 88.8FM-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload widget renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: widget-renders
+          path: app/build/widget-shots/
+          if-no-files-found: ignore
+
+      - name: Upload test and lint reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: app/build/reports/
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Unit tests
+        run: dotnet test windows/tests/Powerstone.Core.Tests -c Release
+
+      - name: Publish single-file exe
+        run: >
+          dotnet publish windows/src/Powerstone.Windows -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+          -o windows/out
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: 88.8FM-windows-x64
+          path: windows/out/88.8FM.exe
+          if-no-files-found: error
+
+      # Launches the real exe: it must still be running after 20 s with no crash log.
+      - name: Smoke test (app starts)
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:LOCALAPPDATA '88.8FM'
+          Remove-Item -Recurse -Force $data -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath windows/out/88.8FM.exe -PassThru
+          Start-Sleep -Seconds 20
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save((Join-Path $PWD 'windows/out/screenshot.png'))
+          $log = Join-Path $data 'crash.log'
+          if (Test-Path $log) { Write-Host '--- crash.log ---'; Get-Content $log; exit 1 }
+          if ($p.HasExited) { Write-Host "App exited during startup (code $($p.ExitCode))"; exit 1 }
+          Write-Host "App is running after 20 s (pid $($p.Id))"
+          Stop-Process -Id $p.Id -Force
+          # Second launch straight into the mini player.
+          $m = Start-Process -FilePath windows/out/88.8FM.exe -ArgumentList '--mini' -PassThru
+          Start-Sleep -Seconds 15
+          $bmp2 = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp2).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp2.Save((Join-Path $PWD 'windows/out/screenshot-mini.png'))
+          if (Test-Path $log) { Write-Host '--- crash.log (mini) ---'; Get-Content $log; exit 1 }
+          if ($m.HasExited) { Write-Host "Mini player launch exited (code $($m.ExitCode))"; exit 1 }
+          Write-Host "Mini player is running (pid $($m.Id))"
+          Stop-Process -Id $m.Id -Force
+
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-screenshot
+          path: windows/out/screenshot*.png
+          if-no-files-found: ignore
