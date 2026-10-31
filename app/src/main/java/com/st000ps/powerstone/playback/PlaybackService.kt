@@ -347,13 +347,14 @@ class PlaybackService : MediaSessionService() {
      * Heart-rate radio from the watch: starts a queue of tracks near [bpm], or, when one is already
      * playing and the target moved a lot, swaps the upcoming tracks without cutting the current one.
      */
-    fun radio(bpm: Int) {
+    fun radio(bpm: Int, force: Boolean = false) {
         val bridge = com.st000ps.powerstone.wear.WearBridge
         val previous = bridge.radioBpm
         bridge.radioBpm = bpm
         val p = session?.player ?: return
         val onRadio = Queue.kindOf(exo.currentMediaItem) == QueueKind.RADIO
-        if (onRadio && previous != null && kotlin.math.abs(previous - bpm) < 10) return
+        // Small heart-rate wobbles don't reshuffle; a deliberate retune (phone) always does.
+        if (!force && onRadio && previous != null && kotlin.math.abs(previous - bpm) < 10) return
         val current = exo.currentMediaItem?.mediaId
         val picks = Queue.radio(app, bpm, 10, setOfNotNull(current))
             .mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.RADIO) }
@@ -517,9 +518,13 @@ class PlaybackService : MediaSessionService() {
                     player.addMediaItems(more)
                 }
                 QueueKind.RADIO -> if (remaining < 2) {
-                    val target = com.st000ps.powerstone.wear.WearBridge.radioBpm ?: return
                     val inQueue = (maxOf(0, player.mediaItemCount - 50) until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
-                    player.addMediaItems(Queue.radio(app, target, 8, inQueue).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.RADIO) })
+                    val target = com.st000ps.powerstone.wear.WearBridge.radioBpm
+                    // Radio switched off: the station carries on as a smart shuffle instead of stopping.
+                    player.addMediaItems(
+                        if (target != null) Queue.radio(app, target, 8, inQueue).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.RADIO) }
+                        else Queue.smartShuffle(app, 50, inQueue).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.SHUFFLE) },
+                    )
                 }
                 QueueKind.ALBUM -> if (remaining == 0) {
                     val relId = mediaItem?.mediaId?.substringBeforeLast('/') ?: return

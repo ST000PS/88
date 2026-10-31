@@ -1,6 +1,20 @@
 package com.st000ps.powerstone.ui
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -110,17 +124,46 @@ fun MiniPlayer(state: UiState, vm: AppViewModel, expand: () -> Unit) {
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(now.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(now.album, style = MaterialTheme.typography.bodySmall, color = Dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    PixelLabel(now.album.uppercase(), Dim, 9.sp)
                 }
-                IconButton(onClick = vm::togglePlay) { Icon(if (now.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "Play/pause") }
-                IconButton(onClick = vm::next, enabled = now.hasNext) { Icon(Icons.Filled.SkipNext, "Next") }
+                RoundButton(if (now.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "Play/pause", 40.dp, filled = true, onClick = vm::togglePlay)
+                Spacer(Modifier.width(8.dp))
+                RoundButton(Icons.Filled.SkipNext, "Next", 36.dp, enabled = now.hasNext, onClick = vm::next)
             }
         }
     }
 }
 
+/**
+ * The player, laid out like the watch app: three pages you swipe between (NOW, DJ EQ, RADIO) with
+ * square page dots, over the cover dimmed and blurred to fill the screen.
+ */
 @Composable
 fun PlayerScreen(state: UiState, vm: AppViewModel, close: () -> Unit, openSound: () -> Unit, openRelease: (String) -> Unit) {
+    val pager = rememberPagerState { 3 }
+    Box(Modifier.fillMaxSize().background(Ink)) {
+        // The cover behind everything, like the watch's Now page.
+        AsyncImage(
+            state.now.artwork, null, contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().blur(36.dp).alpha(0.30f),
+        )
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Ink.copy(alpha = 0.35f), Ink.copy(alpha = 0.85f), Ink))))
+        Column(Modifier.fillMaxSize()) {
+            PlayerHeader(state, vm, close, openSound)
+            HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth()) { page ->
+                when (page) {
+                    0 -> NowPage(state, vm, openRelease)
+                    1 -> EqPage(state, vm, openSound)
+                    else -> RadioPage(state, vm)
+                }
+            }
+            PageDots(3, pager.currentPage, Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp, top = 4.dp))
+        }
+    }
+}
+
+@Composable
+private fun NowPage(state: UiState, vm: AppViewModel, openRelease: (String) -> Unit) {
     // Adapts to whatever window it gets, including split-screen and freeform windows:
     //  - tall:  stacked (artwork, then controls)
     //  - short: artwork shrinks so the transport stays on screen
@@ -130,28 +173,97 @@ fun PlayerScreen(state: UiState, vm: AppViewModel, close: () -> Unit, openSound:
         val short = !wide && maxHeight < 560.dp
         val compact = wide || short
         if (wide) {
-            // Leave room under the artwork for the visualizer strip when it's on.
             val side = minOf(maxWidth * 0.45f, maxHeight - 16.dp - if (state.visualizerOn) 96.dp else 0.dp).coerceAtLeast(96.dp)
             Row(Modifier.fillMaxSize().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.width(side)) {
-                    PlayerMedia(state, vm, openRelease, Modifier.width(side))
-                }
+                Column(Modifier.width(side)) { PlayerMedia(state, vm, openRelease, Modifier.width(side)) }
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) {
-                    PlayerHeader(state, vm, close, openSound)
                     PlayerControls(state, vm, openRelease, compact = true)
                 }
             }
         } else {
-            val artSize = if (short) (maxHeight * 0.3f).coerceAtLeast(96.dp) else null
+            val artSize = if (short) (maxHeight * 0.32f).coerceAtLeast(96.dp) else null
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                PlayerHeader(state, vm, close, openSound)
+                Spacer(Modifier.height(4.dp))
                 PlayerMedia(state, vm, openRelease, if (artSize != null) Modifier.height(artSize) else Modifier.fillMaxWidth())
-                Spacer(Modifier.height(if (compact) 4.dp else 12.dp))
+                Spacer(Modifier.height(if (compact) 6.dp else 16.dp))
                 PlayerControls(state, vm, openRelease, compact)
+            }
+        }
+    }
+}
+
+/** The watch's DJ EQ page: pixel-block bands you drag (the phone's crown), KILL / ISO / RESET. */
+@Composable
+private fun EqPage(state: UiState, vm: AppViewModel, openSound: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        PixelLabel("DJ EQ - DRAG A BAND", Dim, 11.sp)
+        Text("250 Hz / 4 kHz crossovers, like a mixer", color = Dim, fontSize = 11.sp)
+        Spacer(Modifier.height(20.dp))
+        PixelEq(state.eq, vm::setEq)
+        Spacer(Modifier.height(22.dp))
+        WatchChip("MORE SOUND >", false, openSound)
+    }
+}
+
+/**
+ * Tempo radio, the phone's take on the watch's heart-rate radio: music whose tempo matches a BPM
+ * you set (tap it, nudge it, or take this track's). When the watch's heart-rate radio is steering,
+ * this page follows it.
+ */
+@Composable
+private fun RadioPage(state: UiState, vm: AppViewModel) {
+    val target by com.st000ps.powerstone.wear.WearBridge.radio.collectAsState()
+    val fromWatch by com.st000ps.powerstone.wear.WearBridge.radioFromWatch.collectAsState()
+    val running = target != null && state.now.kind == QueueKind.RADIO
+    val trackBpm = state.now.mediaId?.let(vm::lookup)?.second?.bpm
+    var bpm by remember { mutableIntStateOf(target ?: trackBpm ?: 90) }
+    LaunchedEffect(target) { target?.let { bpm = it } }
+    val tapper = remember { TapTempo() }
+    var taps by remember { mutableIntStateOf(0) }
+    fun set(v: Int) { bpm = v.coerceIn(50, 200); if (running) vm.startRadio(bpm) }
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        PixelLabel(if (fromWatch && running) "HEART RATE RADIO" else "TEMPO RADIO", Dim, 11.sp)
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Favorite, null, tint = if (running) Rose else Edge, modifier = Modifier.size(26.dp))
+            Spacer(Modifier.width(10.dp))
+            Text("$bpm", color = White, fontSize = 72.sp, fontFamily = pixelFont())
+        }
+        PixelLabel("BPM", Dim, 12.sp)
+        Spacer(Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            RoundButton(Icons.Filled.Remove, "Slower", 52.dp, enabled = !fromWatch, onClick = { set(bpm - 2) })
+            // Tap along with your pulse, a song, your steps: three taps set the tempo.
+            RoundButton(Icons.Filled.TouchApp, "Tap tempo", 92.dp, filled = true, enabled = !fromWatch, onClick = {
+                tapper.tap()?.let { set(it) }
+                taps = tapper.count
+            }) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Filled.TouchApp, null, tint = Ink, modifier = Modifier.size(26.dp))
+                    PixelLabel(if (taps in 1..2) "TAP ${3 - taps}" else "TAP", Ink, 11.sp)
+                }
+            }
+            RoundButton(Icons.Filled.Add, "Faster", 52.dp, enabled = !fromWatch, onClick = { set(bpm + 2) })
+        }
+        Spacer(Modifier.height(18.dp))
+        Text(
+            when {
+                fromWatch && running -> "Your watch is steering: the music follows your heart rate. Stop it on the watch to take over here."
+                running -> "On air: tracks near $bpm BPM (half and double time count), unheard first. It keeps going until you stop it."
+                else -> "Plays tracks whose tempo matches. Tap the big button along with anything, your pulse, a song, your steps."
+            },
+            color = Dim, fontSize = 12.sp, textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (trackBpm != null && !fromWatch) WatchChip("THIS TRACK $trackBpm", bpm == trackBpm) { set(trackBpm) }
+            if (!fromWatch) WatchChip(if (running) "STOP RADIO" else "START RADIO", running) {
+                if (running) vm.stopRadio() else vm.startRadio(bpm)
             }
         }
     }
@@ -160,17 +272,25 @@ fun PlayerScreen(state: UiState, vm: AppViewModel, close: () -> Unit, openSound:
 @Composable
 private fun PlayerHeader(state: UiState, vm: AppViewModel, close: () -> Unit, openSound: () -> Unit) {
     val now = state.now
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    val radio by com.st000ps.powerstone.wear.WearBridge.radio.collectAsState()
+    val fromWatch by com.st000ps.powerstone.wear.WearBridge.radioFromWatch.collectAsState()
+    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = close) { Icon(Icons.Filled.KeyboardArrowDown, "Close") }
-        Text(
-            when (now.kind) { QueueKind.SHUFFLE -> "SHUFFLE"; QueueKind.ALBUM -> "ALBUM"; QueueKind.RADIO -> "HEART RATE RADIO"; else -> "NOW PLAYING" },
-            style = MaterialTheme.typography.labelMedium, color = Dim, modifier = Modifier.weight(1f),
-        )
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            KindPill(
+                when (now.kind) {
+                    QueueKind.SHUFFLE -> "SHUFFLE"
+                    QueueKind.ALBUM -> "ALBUM"
+                    QueueKind.RADIO -> (if (fromWatch) "HEART RADIO" else "RADIO") + (radio?.let { " $it BPM" } ?: "")
+                    else -> "NOW PLAYING"
+                },
+            )
+        }
         if (now.video != null) IconButton(onClick = { vm.setVideoOn(!state.videoOn) }) {
             Icon(if (state.videoOn) Icons.Filled.Videocam else Icons.Filled.VideocamOff, "Video", tint = if (state.videoOn) Rose else Dim)
         }
         SleepButton(state, vm)
-        IconButton(onClick = openSound) { Icon(Icons.Filled.Equalizer, "Sound") }
+        IconButton(onClick = openSound) { Icon(Icons.Filled.Tune, "Sound") }
     }
 }
 
@@ -262,74 +382,80 @@ private fun PlayerControls(state: UiState, vm: AppViewModel, openRelease: (Strin
     val current = id?.let(vm::lookup)
     val sub = state.me.isSubscriber
 
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                now.title, fontWeight = FontWeight.Bold, maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis,
-                style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
-            )
-            Text("${now.artist} · ${now.album}", color = Dim, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clickable { current?.let { openRelease(it.first.id) } })
-            current?.second?.let { t ->
-                val meta = listOfNotNull(t.bpm?.let { "$it BPM" }, t.key?.let { "KEY $it" + (t.keyJa?.let { j -> " · $j" } ?: "") }).joinToString(" · ")
-                if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.bodySmall, color = Dim)
-            }
-        }
-        if (state.me.signedIn && id != null) {
-            val fav = id in state.favs
-            IconButton(onClick = { vm.toggleFav(id) }) {
-                Icon(if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Favourite", tint = if (fav) Rose else Dim)
-            }
-        }
-        if (current != null) Box {
-            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                TrackMenuItems(current.first, current.second, state, vm) { menu = false }
-            }
-        }
+    // Title and what it is, centred like the watch.
+    Text(
+        now.title, fontWeight = FontWeight.Bold, maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+        style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+    )
+    Text(
+        listOf(now.artist, now.album).filter { it.isNotEmpty() }.joinToString(" · "), color = Dim, maxLines = 1,
+        overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().clickable { current?.let { openRelease(it.first.id) } },
+    )
+    current?.second?.let { t ->
+        val meta = listOfNotNull(t.bpm?.let { "$it BPM" }, t.key?.let { "KEY $it" + (t.keyJa?.let { j -> " $j" } ?: "") }).joinToString("  /  ")
+        if (meta.isNotEmpty()) PixelLabel(meta, Dim, 10.sp, Modifier.fillMaxWidth().padding(top = 4.dp))
     }
+
     val duration = now.durationMs.coerceAtLeast(1)
     Slider(
         value = if (dragging) dragPos else now.positionMs.toFloat() / duration,
         onValueChange = { dragging = true; dragPos = it },
         onValueChangeFinished = { vm.seekTo((dragPos * duration).toLong()); dragging = false },
+        colors = SliderDefaults.colors(thumbColor = White, activeTrackColor = Rose, inactiveTrackColor = Edge),
     )
     Row(Modifier.fillMaxWidth()) {
-        Text(formatDuration(now.positionMs / 1000.0), style = MaterialTheme.typography.bodySmall, color = Dim)
+        PixelLabel(formatDuration(now.positionMs / 1000.0), Dim, 10.sp)
         Spacer(Modifier.weight(1f))
-        if (!sub) Text("PREVIEW", style = MaterialTheme.typography.labelSmall, color = Rose)
+        if (!sub) PixelLabel("PREVIEW", Rose, 10.sp)
         Spacer(Modifier.weight(1f))
-        Text(formatDuration(now.durationMs / 1000.0), style = MaterialTheme.typography.bodySmall, color = Dim)
+        PixelLabel(formatDuration(now.durationMs / 1000.0), Dim, 10.sp)
     }
-    Spacer(Modifier.height(if (compact) 4.dp else 12.dp))
-    val big = if (compact) 56.dp else 72.dp
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = vm::smartShuffle) {
-            Icon(Icons.Filled.Shuffle, "Shuffle the catalogue", tint = if (now.kind == QueueKind.SHUFFLE) Rose else Dim)
+    Spacer(Modifier.height(if (compact) 6.dp else 14.dp))
+
+    // Transport: outlined rounds around a solid white play, as on the watch.
+    val big = if (compact) 64.dp else 84.dp
+    val mid = if (compact) 48.dp else 58.dp
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        RoundButton(Icons.Filled.SkipPrevious, "Previous", mid, onClick = vm::previous)
+        Spacer(Modifier.width(18.dp))
+        RoundButton(if (now.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "Play/pause", big, filled = true, onClick = vm::togglePlay) {
+            if (now.isBuffering && !now.isPlaying) CircularProgressIndicator(Modifier.size(28.dp), color = Ink, strokeWidth = 2.dp)
+            else Icon(if (now.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "Play/pause", tint = Ink, modifier = Modifier.size(big * 0.5f))
         }
-        IconButton(onClick = vm::previous) { Icon(Icons.Filled.SkipPrevious, "Previous", Modifier.size(36.dp)) }
-        FilledIconButton(
-            onClick = vm::togglePlay, modifier = Modifier.size(big),
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = Rose),
-        ) {
-            if (now.isBuffering && !now.isPlaying) CircularProgressIndicator(Modifier.size(28.dp), color = Color.White)
-            else Icon(if (now.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, "Play/pause", Modifier.size(big * 0.55f))
+        Spacer(Modifier.width(18.dp))
+        RoundButton(Icons.Filled.SkipNext, "Next", mid, enabled = now.hasNext, onClick = vm::next)
+    }
+    Spacer(Modifier.height(if (compact) 8.dp else 14.dp))
+    // Second row, small rounds: favourite, shuffle everything, repeat (off > tape > 1), more.
+    val small = 44.dp
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally)) {
+        if (state.me.signedIn && id != null) {
+            val fav = id in state.favs
+            RoundButton(if (fav) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "Favourite", small,
+                tint = if (fav) Rose else White, onClick = { vm.toggleFav(id) })
         }
-        IconButton(onClick = vm::next, enabled = now.hasNext) { Icon(Icons.Filled.SkipNext, "Next", Modifier.size(36.dp)) }
-        // Side by side when space is tight, stacked otherwise.
-        val repeatOne: @Composable () -> Unit = {
-            IconButton(onClick = { vm.setRepeat(Player.REPEAT_MODE_ONE) }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Filled.RepeatOne, "Repeat 1", tint = if (now.repeatMode == Player.REPEAT_MODE_ONE) Rose else Dim)
+        RoundButton(Icons.Filled.Shuffle, "Shuffle everything", small, tint = if (now.kind == QueueKind.SHUFFLE) Rose else White, onClick = vm::smartShuffle)
+        RoundButton(
+            if (now.repeatMode == Player.REPEAT_MODE_ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat, "Repeat", small,
+            tint = if (now.repeatMode != Player.REPEAT_MODE_OFF) Rose else White,
+            onClick = {
+                when (now.repeatMode) {
+                    Player.REPEAT_MODE_OFF -> vm.setRepeat(Player.REPEAT_MODE_ALL)
+                    Player.REPEAT_MODE_ALL -> vm.setRepeat(Player.REPEAT_MODE_ONE)
+                    else -> vm.setRepeat(Player.REPEAT_MODE_ONE) // toggles back off
+                }
+            },
+        )
+        if (current != null) Box {
+            RoundButton(Icons.Filled.MoreVert, "More", small, onClick = { menu = true })
+            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                TrackMenuItems(current.first, current.second, state, vm) { menu = false }
             }
         }
-        val repeatTape: @Composable () -> Unit = {
-            IconButton(onClick = { vm.setRepeat(Player.REPEAT_MODE_ALL) }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Filled.Repeat, "Repeat tape", tint = if (now.repeatMode == Player.REPEAT_MODE_ALL) Rose else Dim)
-            }
-        }
-        if (compact) Row { repeatOne(); repeatTape() } else Column(horizontalAlignment = Alignment.CenterHorizontally) { repeatOne(); repeatTape() }
     }
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { SleepLabel(state) }
+    Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) { SleepLabel(state) }
     UpNext(state, vm)
     Spacer(Modifier.height(if (compact) 8.dp else 24.dp))
 }
@@ -427,18 +553,8 @@ fun SoundScreen(state: UiState, vm: AppViewModel, back: () -> Unit) {
             }
             Text("Splits at 250 Hz and 4 kHz like a DJ mixer. KILL mutes a band; ISO plays only that band.",
                 style = MaterialTheme.typography.bodySmall, color = Dim)
-            EqState.BANDS.forEach { band ->
-                val label = mapOf("lo" to "LO · 低音", "mid" to "MID · 中音", "hi" to "HI · 高音")[band]!!
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                    Text(label, modifier = Modifier.width(96.dp))
-                    Text("${(eq.level(band) * 100).toInt()}%", color = Dim, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.weight(1f))
-                    Pill("KILL", band in eq.kill) { vm.setEq(eq.copy(kill = if (band in eq.kill) eq.kill - band else eq.kill + band)) }
-                    Spacer(Modifier.width(6.dp))
-                    Pill("ISO", eq.solo == band) { vm.setEq(eq.copy(solo = if (eq.solo == band) null else band)) }
-                }
-                Slider(value = eq.level(band), valueRange = 0f..1.5f, onValueChange = { vm.setEq(eq.with(band, it)) })
-            }
+            Spacer(Modifier.height(12.dp))
+            PixelEq(eq, vm::setEq, Modifier.fillMaxWidth())
 
             Spacer(Modifier.height(16.dp))
             Text("VINYL STOP · ビニールストップ", style = MaterialTheme.typography.labelLarge, color = Dim)

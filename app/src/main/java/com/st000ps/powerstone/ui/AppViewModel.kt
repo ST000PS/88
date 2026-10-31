@@ -475,6 +475,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** The site's SHUFFLE: unheard songs from across the whole catalogue, forever. */
+    /** Tempo radio from the phone: tracks near [bpm] (half / double time count), kept topped up. */
+    fun startRadio(bpm: Int) {
+        val service = com.st000ps.powerstone.playback.PlaybackService.instance ?: run { toast("Player is starting — try again"); return }
+        com.st000ps.powerstone.wear.WearBridge.radioFromWatch.value = false
+        service.radio(bpm.coerceIn(50, 200), force = true)
+    }
+
+    fun stopRadio() {
+        com.st000ps.powerstone.wear.WearBridge.radioBpm = null
+        com.st000ps.powerstone.wear.WearBridge.radioFromWatch.value = false
+        com.st000ps.powerstone.playback.PlaybackService.instance?.publishToWatch()
+    }
+
     fun smartShuffle() {
         val picks = Queue.smartShuffle(app, 60)
         if (picks.isEmpty()) return

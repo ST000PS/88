@@ -27,8 +27,17 @@ import java.io.ByteArrayOutputStream
  * Only sends when something visible changed; the watch extrapolates the position itself.
  */
 object WearBridge {
-    /** Heart-rate radio target from the watch, or null when the radio is off. */
-    @Volatile var radioBpm: Int? = null
+    /**
+     * Tempo radio target in BPM, or null when the radio is off. Set from the phone's Radio page
+     * or by the watch's heart-rate radio ([radioFromWatch]); observable for the phone UI.
+     */
+    val radio = kotlinx.coroutines.flow.MutableStateFlow<Int?>(null)
+    var radioBpm: Int?
+        get() = radio.value
+        set(v) { radio.value = v }
+
+    /** True while the watch's heart-rate radio is the one steering. */
+    val radioFromWatch = kotlinx.coroutines.flow.MutableStateFlow(false)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var lastKey: String? = null

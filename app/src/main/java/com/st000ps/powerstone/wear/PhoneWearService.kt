@@ -73,7 +73,8 @@ class PhoneWearService : WearableListenerService() {
             }
             cmd.startsWith(WearProtocol.RADIO_PREFIX) -> {
                 val bpm = cmd.removePrefix(WearProtocol.RADIO_PREFIX).toIntOrNull()
-                if (bpm == null) WearBridge.radioBpm = null else service.radio(bpm)
+                if (bpm == null) { WearBridge.radioBpm = null; WearBridge.radioFromWatch.value = false }
+                else { WearBridge.radioFromWatch.value = true; service.radio(bpm) }
             }
             else -> service.widgetCommand(cmd) // play_pause, next, previous, fav, shuffle
         }
