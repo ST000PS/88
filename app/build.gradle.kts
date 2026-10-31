@@ -17,11 +17,26 @@ android {
         versionName = "1.0"
     }
 
+    // The phone and watch apps must share one signing key for the Wearable Data Layer to connect them.
+    // The key lives outside the repo; its location and passwords come from the user-level
+    // ~/.gradle/gradle.properties (POWERSTONE_*). Without them (e.g. CI) builds use the debug key.
+    val sharedKey = providers.gradleProperty("POWERSTONE_KEYSTORE").orNull?.let { path ->
+        signingConfigs.create("shared") {
+            storeFile = file(path)
+            storePassword = providers.gradleProperty("POWERSTONE_KEYSTORE_PASSWORD").get()
+            keyAlias = providers.gradleProperty("POWERSTONE_KEY_ALIAS").get()
+            keyPassword = providers.gradleProperty("POWERSTONE_KEY_PASSWORD").get()
+        }
+    }
+
     buildTypes {
+        debug {
+            sharedKey?.let { signingConfig = it }
+        }
         release {
             isMinifyEnabled = false
-            // Personal sideload build: sign with the local debug key so it installs without extra setup.
-            signingConfig = signingConfigs.getByName("debug")
+            // Personal sideload build: the shared key when present, else the local debug key.
+            signingConfig = sharedKey ?: signingConfigs.getByName("debug")
         }
     }
 
@@ -65,6 +80,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Talks to the Pixel Watch app (now playing, controls, EQ, sign-in handoff).
+    implementation("com.google.android.gms:play-services-wearable:19.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")

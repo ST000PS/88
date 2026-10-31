@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 88.8FM on the watch: white "88" on near-black, like the phone widget. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#FF0A0A0A" android:pathData="M24,0a24,24 0,1 1,0 48a24,24 0,1 1,0 -48z" />
+    <path android:strokeColor="#FF222222" android:strokeWidth="1" android:pathData="M24,2a22,22 0,1 1,0 44a22,22 0,1 1,0 -44z" />
+    <!-- two pixel-style 8s -->
+    <path android:fillColor="#FFF2F2F2"
+        android:pathData="M11,14h10v4h-10zM11,22h10v4h-10zM11,30h10v4h-10zM9,16h4v8h-4zM19,16h4v8h-4zM9,24h4v8h-4zM19,24h4v8h-4z" />
+    <path android:fillColor="#FFF2F2F2"
+        android:pathData="M27,14h10v4h-10zM27,22h10v4h-10zM27,30h10v4h-10zM25,16h4v8h-4zM35,16h4v8h-4zM25,24h4v8h-4zM35,24h4v8h-4z" />
+</vector>

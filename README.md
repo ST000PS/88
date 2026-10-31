@@ -20,6 +20,22 @@ These are ported from the website's own code.
   and a major/minor key filter. You can play the whole selection.
 - Tags: tap a tag to get every track carrying it.
 
+**Player, in the watch app's design**
+- **Look:** pixel-type labels (Silkscreen) and round hairline buttons around a solid white play
+  button, with rose accents and the cover blurred and dimmed behind the whole player.
+- **Three pages you swipe between,** with square page dots, as on the Pixel Watch:
+  - **NOW:** cover, title, BPM and key, the transport, then favourite, shuffle everything, repeat
+    (off > tape > 1) and more.
+  - **DJ EQ:** the watch's pixel-block bands (0–150 %, the top five rose). Drag a band up or down
+    (the phone's crown) or tap a block, with KILL, ISO and RESET. The Sound screen uses the same
+    EQ.
+  - **RADIO:** tempo radio, the phone's take on the watch's heart-rate radio.
+    - Plays tracks near a BPM (half and double time count), unheard first, and keeps going until
+      you stop it.
+    - Set the BPM by tapping along with anything, by nudging it, or by taking this track's.
+    - When the watch's heart-rate radio is steering the phone, the page follows it.
+    - Stopping the radio lets the station carry on as a smart shuffle.
+
 **Playback** (Media3 / ExoPlayer, runs in the background with lock-screen, notification and
 headset controls)
 - **Smart shuffle**: random songs from across the whole catalogue, picking ones you haven't heard

@@ -130,6 +130,7 @@ class PlaybackService : MediaSessionService() {
         exo.addListener(object : Player.Listener {
             override fun onEvents(player: Player, events: Player.Events) {
                 pushWidget()
+                publishToWatch()
                 if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) updateButtons()
                 if (events.contains(Player.EVENT_IS_PLAYING_CHANGED) && player.isPlaying) {
                     handler.removeCallbacks(fadeTick); handler.post(fadeTick)
@@ -172,7 +173,8 @@ class PlaybackService : MediaSessionService() {
             }
         })
         app.sleep.onEach { applySleep(it); pushWidget() }.launchIn(scope)
-        app.favs.onEach { updateButtons(); pushWidget() }.launchIn(scope)
+        app.favs.onEach { updateButtons(); pushWidget(); publishToWatch() }.launchIn(scope)
+        app.settings.eq.onEach { publishToWatch() }.launchIn(scope)
 
         // Tapping the media notification: over the lock screen it opens the lock-screen player,
         // otherwise it goes straight to the app.
@@ -338,6 +340,34 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    /** Sends now playing to the Pixel Watch app (no-op when nothing visible changed). */
+    fun publishToWatch() = com.st000ps.powerstone.wear.WearBridge.publish(this, exo)
+
+    /**
+     * Heart-rate radio from the watch: starts a queue of tracks near [bpm], or, when one is already
+     * playing and the target moved a lot, swaps the upcoming tracks without cutting the current one.
+     */
+    fun radio(bpm: Int, force: Boolean = false) {
+        val bridge = com.st000ps.powerstone.wear.WearBridge
+        val previous = bridge.radioBpm
+        bridge.radioBpm = bpm
+        val p = session?.player ?: return
+        val onRadio = Queue.kindOf(exo.currentMediaItem) == QueueKind.RADIO
+        // Small heart-rate wobbles don't reshuffle; a deliberate retune (phone) always does.
+        if (!force && onRadio && previous != null && kotlin.math.abs(previous - bpm) < 10) return
+        val current = exo.currentMediaItem?.mediaId
+        val picks = Queue.radio(app, bpm, 10, setOfNotNull(current))
+            .mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.RADIO) }
+        if (picks.isEmpty()) return
+        if (onRadio) {
+            val next = exo.currentMediaItemIndex + 1
+            if (next < exo.mediaItemCount) exo.removeMediaItems(next, exo.mediaItemCount)
+            exo.addMediaItems(picks)
+        } else {
+            p.setMediaItems(picks, 0, 0); p.prepare(); p.play()
+        }
+    }
+
     private val grooveJobs = HashSet<String>()
     private var lastReauth = 0L
 
@@ -486,6 +516,15 @@ class PlaybackService : MediaSessionService() {
                     val inQueue = (maxOf(0, player.mediaItemCount - 50) until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
                     val more = Queue.smartShuffle(app, 50, inQueue).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.SHUFFLE) }
                     player.addMediaItems(more)
+                }
+                QueueKind.RADIO -> if (remaining < 2) {
+                    val inQueue = (maxOf(0, player.mediaItemCount - 50) until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                    val target = com.st000ps.powerstone.wear.WearBridge.radioBpm
+                    // Radio switched off: the station carries on as a smart shuffle instead of stopping.
+                    player.addMediaItems(
+                        if (target != null) Queue.radio(app, target, 8, inQueue).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.RADIO) }
+                        else Queue.smartShuffle(app, 50, inQueue).mapNotNull { (r, t) -> Queue.mediaItem(app, r, t, QueueKind.SHUFFLE) },
+                    )
                 }
                 QueueKind.ALBUM -> if (remaining == 0) {
                     val relId = mediaItem?.mediaId?.substringBeforeLast('/') ?: return

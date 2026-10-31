@@ -12,7 +12,7 @@ import com.st000ps.powerstone.data.streamPath
 import com.st000ps.powerstone.data.trackId
 
 /** What a queue was started from; decides what happens when it runs out. */
-enum class QueueKind { ALBUM, SHUFFLE, LIST }
+enum class QueueKind { ALBUM, SHUFFLE, LIST, RADIO }
 
 object Queue {
     const val KIND = "kind"
@@ -86,6 +86,28 @@ object Queue {
             out += pick
         }
         return out
+    }
+
+    /** How far [bpm] is from [target], counting half and double time as a match (70 fits 140). */
+    fun tempoDistance(bpm: Int, target: Int): Int =
+        listOf(bpm, bpm * 2, bpm / 2).minOf { kotlin.math.abs(it - target) }
+
+    /**
+     * Heart-rate radio (from the watch): tracks whose tempo is close to [target], unheard first,
+     * widening the window when too few match.
+     */
+    fun radio(app: PowerstoneApp, target: Int, count: Int, avoid: Set<String> = emptySet()): List<Pair<Release, Track>> {
+        val all = app.releases.value.flatMap { r -> r.tracks.filter { it.bpm != null }.map { r to it } }
+            .filter { (r, t) -> trackId(r, t) !in avoid }
+        val heard = app.settings.shuffleHeard
+        for (window in listOf(3, 6, 10, 16, 1000)) {
+            val near = all.filter { (_, t) -> tempoDistance(t.bpm!!, target) <= window }
+            if (near.size >= count || window == 1000) {
+                val (fresh, old) = near.shuffled().partition { (r, t) -> trackId(r, t) !in heard }
+                return (fresh + old).take(count)
+            }
+        }
+        return emptyList()
     }
 
     fun markHeard(app: PowerstoneApp, id: String) {
